@@ -1,0 +1,10 @@
+C:/Users/Lenovo/CLionProjects/CLearning/cmake-build-debug/CMakeFiles/CLearning.dir
+C:/Users/Lenovo/CLionProjects/CLearning/cmake-build-debug/CMakeFiles/edit_cache.dir
+C:/Users/Lenovo/CLionProjects/CLearning/cmake-build-debug/CMakeFiles/rebuild_cache.dir
+C:/Users/Lenovo/CLionProjects/CLearning/cmake-build-debug/learning-test/CMakeFiles/test1.dir
+C:/Users/Lenovo/CLionProjects/CLearning/cmake-build-debug/learning-test/CMakeFiles/edit_cache.dir
+C:/Users/Lenovo/CLionProjects/CLearning/cmake-build-debug/learning-test/CMakeFiles/rebuild_cache.dir
+C:/Users/Lenovo/CLionProjects/CLearning/cmake-build-debug/c-tutorial/CMakeFiles/1HelloWorld.dir
+C:/Users/Lenovo/CLionProjects/CLearning/cmake-build-debug/c-tutorial/CMakeFiles/2Definition.dir
+C:/Users/Lenovo/CLionProjects/CLearning/cmake-build-debug/c-tutorial/CMakeFiles/edit_cache.dir
+C:/Users/Lenovo/CLionProjects/CLearning/cmake-build-debug/c-tutorial/CMakeFiles/rebuild_cache.dir
