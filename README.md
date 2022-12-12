@@ -1,2 +1,3 @@
 # GitHub_cy
-A learning note with studying
+A learning note with studying.
+
