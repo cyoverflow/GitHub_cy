@@ -1,4 +1,4 @@
-# Install script for directory: C:/Users/Lenovo/CLionProjects/CLearning/learning-test
+# Install script for directory: D:/develop/git_repo/GitHub_cy/CLearning/learning-test
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)

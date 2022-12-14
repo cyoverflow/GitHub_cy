@@ -5,9 +5,11 @@
 1378	3074	6919555317712224	CLearning.exe	4ac56bafb443b963
 553	1178	6919830228448126	c-tutorial/HelloWorld.exe	b3742e7607bb1f74
 4	547	6919830222254103	c-tutorial/CMakeFiles/HelloWorld.dir/HelloWorld.c.obj	d6689143b1aaee2b
-18	756	6919904660647549	c-tutorial/CMakeFiles/2Definition.dir/2Definition.c.obj	c510088d2c6e8abb
-761	1458	6919904667535095	c-tutorial/2Definition.exe	4f85acb686452581
 4	384	6919904754260584	c-tutorial/CMakeFiles/2Definition.dir/2Definition.c.obj	c510088d2c6e8abb
 388	955	6919904759808740	c-tutorial/2Definition.exe	4f85acb686452581
 1	1915	6923498117921270	c-tutorial/CMakeFiles/1HelloWorld.dir/1HelloWorld.c.obj	f3060649f3a43544
 1916	2721	6923498125905730	c-tutorial/1HelloWorld.exe	b8acdff50296db47
+1	799	6926909885394191	c-tutorial/CMakeFiles/3Calculate.dir/3Calculate.c.obj	ae258e2e0ffaac4d
+801	1398	6926909891325969	c-tutorial/3Calculate.exe	de5bd186f1e583b2
+2	226	6926910136338376	c-tutorial/CMakeFiles/3Calculate.dir/3Calculate.c.obj	ae258e2e0ffaac4d
+228	589	6926910139858615	c-tutorial/3Calculate.exe	de5bd186f1e583b2

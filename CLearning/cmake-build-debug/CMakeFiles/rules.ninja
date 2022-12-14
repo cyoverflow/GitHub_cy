@@ -96,10 +96,29 @@ rule C_EXECUTABLE_LINKER__2Definition_Debug
 
 
 #############################################
+# Rule for compiling C files.
+
+rule C_COMPILER__3Calculate_Debug
+  depfile = $DEP_FILE
+  deps = gcc
+  command = C:\MinGW\bin\gcc.exe $DEFINES $INCLUDES $FLAGS -MD -MT $out -MF $DEP_FILE -o $out -c $in
+  description = Building C object $out
+
+
+#############################################
+# Rule for linking C executable.
+
+rule C_EXECUTABLE_LINKER__3Calculate_Debug
+  command = cmd.exe /C "$PRE_LINK && C:\MinGW\bin\gcc.exe $FLAGS $LINK_FLAGS $in -o $TARGET_FILE -Wl,--out-implib,$TARGET_IMPLIB -Wl,--major-image-version,0,--minor-image-version,0 $LINK_PATH $LINK_LIBRARIES && $POST_BUILD"
+  description = Linking C executable $TARGET_FILE
+  restat = $RESTAT
+
+
+#############################################
 # Rule for re-running cmake.
 
 rule RERUN_CMAKE
-  command = "D:\CLion\CLion 2022.2.4\bin\cmake\win\bin\cmake.exe" --regenerate-during-build -SC:\Users\Lenovo\CLionProjects\CLearning -BC:\Users\Lenovo\CLionProjects\CLearning\cmake-build-debug
+  command = "D:\CLion\CLion 2022.2.4\bin\cmake\win\bin\cmake.exe" --regenerate-during-build -SD:\develop\git_repo\GitHub_cy\CLearning -BD:\develop\git_repo\GitHub_cy\CLearning\cmake-build-debug
   description = Re-running CMake...
   generator = 1
 

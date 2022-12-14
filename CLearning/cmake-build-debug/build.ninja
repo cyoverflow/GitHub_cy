@@ -39,7 +39,7 @@ include CMakeFiles/rules.ninja
 #############################################
 # Logical path to working directory; prefix for absolute paths.
 
-cmake_ninja_workdir = C$:/Users/Lenovo/CLionProjects/CLearning/cmake-build-debug/
+cmake_ninja_workdir = D$:/develop/git_repo/GitHub_cy/CLearning/cmake-build-debug/
 # =============================================================================
 # Object build statements for EXECUTABLE target CLearning
 
@@ -49,7 +49,7 @@ cmake_ninja_workdir = C$:/Users/Lenovo/CLionProjects/CLearning/cmake-build-debug
 
 build cmake_object_order_depends_target_CLearning: phony || CMakeFiles/CLearning.dir
 
-build CMakeFiles/CLearning.dir/main.c.obj: C_COMPILER__CLearning_Debug C$:/Users/Lenovo/CLionProjects/CLearning/main.c || cmake_object_order_depends_target_CLearning
+build CMakeFiles/CLearning.dir/main.c.obj: C_COMPILER__CLearning_Debug D$:/develop/git_repo/GitHub_cy/CLearning/main.c || cmake_object_order_depends_target_CLearning
   DEP_FILE = CMakeFiles\CLearning.dir\main.c.obj.d
   FLAGS = -g -std=gnu99
   OBJECT_DIR = CMakeFiles\CLearning.dir
@@ -78,7 +78,7 @@ build CLearning.exe: C_EXECUTABLE_LINKER__CLearning_Debug CMakeFiles/CLearning.d
 # Utility command for edit_cache
 
 build CMakeFiles/edit_cache.util: CUSTOM_COMMAND
-  COMMAND = cmd.exe /C "cd /D C:\Users\Lenovo\CLionProjects\CLearning\cmake-build-debug && "D:\CLion\CLion 2022.2.4\bin\cmake\win\bin\cmake.exe" -E echo "No interactive CMake dialog available.""
+  COMMAND = cmd.exe /C "cd /D D:\develop\git_repo\GitHub_cy\CLearning\cmake-build-debug && "D:\CLion\CLion 2022.2.4\bin\cmake\win\bin\cmake.exe" -E echo "No interactive CMake dialog available.""
   DESC = No interactive CMake dialog available...
   restat = 1
 
@@ -89,7 +89,7 @@ build edit_cache: phony CMakeFiles/edit_cache.util
 # Utility command for rebuild_cache
 
 build CMakeFiles/rebuild_cache.util: CUSTOM_COMMAND
-  COMMAND = cmd.exe /C "cd /D C:\Users\Lenovo\CLionProjects\CLearning\cmake-build-debug && "D:\CLion\CLion 2022.2.4\bin\cmake\win\bin\cmake.exe" --regenerate-during-build -SC:\Users\Lenovo\CLionProjects\CLearning -BC:\Users\Lenovo\CLionProjects\CLearning\cmake-build-debug"
+  COMMAND = cmd.exe /C "cd /D D:\develop\git_repo\GitHub_cy\CLearning\cmake-build-debug && "D:\CLion\CLion 2022.2.4\bin\cmake\win\bin\cmake.exe" --regenerate-during-build -SD:\develop\git_repo\GitHub_cy\CLearning -BD:\develop\git_repo\GitHub_cy\CLearning\cmake-build-debug"
   DESC = Running CMake to regenerate build system...
   pool = console
   restat = 1
@@ -98,7 +98,7 @@ build rebuild_cache: phony CMakeFiles/rebuild_cache.util
 
 # =============================================================================
 # Write statements declared in CMakeLists.txt:
-# C:/Users/Lenovo/CLionProjects/CLearning/CMakeLists.txt
+# D:/develop/git_repo/GitHub_cy/CLearning/CMakeLists.txt
 # =============================================================================
 
 # =============================================================================
@@ -110,7 +110,7 @@ build rebuild_cache: phony CMakeFiles/rebuild_cache.util
 
 build cmake_object_order_depends_target_test1: phony || learning-test/CMakeFiles/test1.dir
 
-build learning-test/CMakeFiles/test1.dir/test1.c.obj: C_COMPILER__test1_Debug C$:/Users/Lenovo/CLionProjects/CLearning/learning-test/test1.c || cmake_object_order_depends_target_test1
+build learning-test/CMakeFiles/test1.dir/test1.c.obj: C_COMPILER__test1_Debug D$:/develop/git_repo/GitHub_cy/CLearning/learning-test/test1.c || cmake_object_order_depends_target_test1
   DEP_FILE = learning-test\CMakeFiles\test1.dir\test1.c.obj.d
   FLAGS = -g -std=gnu99
   OBJECT_DIR = learning-test\CMakeFiles\test1.dir
@@ -139,7 +139,7 @@ build learning-test/test1.exe: C_EXECUTABLE_LINKER__test1_Debug learning-test/CM
 # Utility command for edit_cache
 
 build learning-test/CMakeFiles/edit_cache.util: CUSTOM_COMMAND
-  COMMAND = cmd.exe /C "cd /D C:\Users\Lenovo\CLionProjects\CLearning\cmake-build-debug\learning-test && "D:\CLion\CLion 2022.2.4\bin\cmake\win\bin\cmake.exe" -E echo "No interactive CMake dialog available.""
+  COMMAND = cmd.exe /C "cd /D D:\develop\git_repo\GitHub_cy\CLearning\cmake-build-debug\learning-test && "D:\CLion\CLion 2022.2.4\bin\cmake\win\bin\cmake.exe" -E echo "No interactive CMake dialog available.""
   DESC = No interactive CMake dialog available...
   restat = 1
 
@@ -150,7 +150,7 @@ build learning-test/edit_cache: phony learning-test/CMakeFiles/edit_cache.util
 # Utility command for rebuild_cache
 
 build learning-test/CMakeFiles/rebuild_cache.util: CUSTOM_COMMAND
-  COMMAND = cmd.exe /C "cd /D C:\Users\Lenovo\CLionProjects\CLearning\cmake-build-debug\learning-test && "D:\CLion\CLion 2022.2.4\bin\cmake\win\bin\cmake.exe" --regenerate-during-build -SC:\Users\Lenovo\CLionProjects\CLearning -BC:\Users\Lenovo\CLionProjects\CLearning\cmake-build-debug"
+  COMMAND = cmd.exe /C "cd /D D:\develop\git_repo\GitHub_cy\CLearning\cmake-build-debug\learning-test && "D:\CLion\CLion 2022.2.4\bin\cmake\win\bin\cmake.exe" --regenerate-during-build -SD:\develop\git_repo\GitHub_cy\CLearning -BD:\develop\git_repo\GitHub_cy\CLearning\cmake-build-debug"
   DESC = Running CMake to regenerate build system...
   pool = console
   restat = 1
@@ -159,7 +159,7 @@ build learning-test/rebuild_cache: phony learning-test/CMakeFiles/rebuild_cache.
 
 # =============================================================================
 # Write statements declared in CMakeLists.txt:
-# C:/Users/Lenovo/CLionProjects/CLearning/CMakeLists.txt
+# D:/develop/git_repo/GitHub_cy/CLearning/CMakeLists.txt
 # =============================================================================
 
 # =============================================================================
@@ -171,7 +171,7 @@ build learning-test/rebuild_cache: phony learning-test/CMakeFiles/rebuild_cache.
 
 build cmake_object_order_depends_target_1HelloWorld: phony || c-tutorial/CMakeFiles/1HelloWorld.dir
 
-build c-tutorial/CMakeFiles/1HelloWorld.dir/1HelloWorld.c.obj: C_COMPILER__1HelloWorld_Debug C$:/Users/Lenovo/CLionProjects/CLearning/c-tutorial/1HelloWorld.c || cmake_object_order_depends_target_1HelloWorld
+build c-tutorial/CMakeFiles/1HelloWorld.dir/1HelloWorld.c.obj: C_COMPILER__1HelloWorld_Debug D$:/develop/git_repo/GitHub_cy/CLearning/c-tutorial/1HelloWorld.c || cmake_object_order_depends_target_1HelloWorld
   DEP_FILE = c-tutorial\CMakeFiles\1HelloWorld.dir\1HelloWorld.c.obj.d
   FLAGS = -g -std=gnu99
   OBJECT_DIR = c-tutorial\CMakeFiles\1HelloWorld.dir
@@ -204,7 +204,7 @@ build c-tutorial/1HelloWorld.exe: C_EXECUTABLE_LINKER__1HelloWorld_Debug c-tutor
 
 build cmake_object_order_depends_target_2Definition: phony || c-tutorial/CMakeFiles/2Definition.dir
 
-build c-tutorial/CMakeFiles/2Definition.dir/2Definition.c.obj: C_COMPILER__2Definition_Debug C$:/Users/Lenovo/CLionProjects/CLearning/c-tutorial/2Definition.c || cmake_object_order_depends_target_2Definition
+build c-tutorial/CMakeFiles/2Definition.dir/2Definition.c.obj: C_COMPILER__2Definition_Debug D$:/develop/git_repo/GitHub_cy/CLearning/c-tutorial/2Definition.c || cmake_object_order_depends_target_2Definition
   DEP_FILE = c-tutorial\CMakeFiles\2Definition.dir\2Definition.c.obj.d
   FLAGS = -g -std=gnu99
   OBJECT_DIR = c-tutorial\CMakeFiles\2Definition.dir
@@ -228,12 +228,45 @@ build c-tutorial/2Definition.exe: C_EXECUTABLE_LINKER__2Definition_Debug c-tutor
   TARGET_IMPLIB = c-tutorial\lib2Definition.dll.a
   TARGET_PDB = 2Definition.exe.dbg
 
+# =============================================================================
+# Object build statements for EXECUTABLE target 3Calculate
+
+
+#############################################
+# Order-only phony target for 3Calculate
+
+build cmake_object_order_depends_target_3Calculate: phony || c-tutorial/CMakeFiles/3Calculate.dir
+
+build c-tutorial/CMakeFiles/3Calculate.dir/3Calculate.c.obj: C_COMPILER__3Calculate_Debug D$:/develop/git_repo/GitHub_cy/CLearning/c-tutorial/3Calculate.c || cmake_object_order_depends_target_3Calculate
+  DEP_FILE = c-tutorial\CMakeFiles\3Calculate.dir\3Calculate.c.obj.d
+  FLAGS = -g -std=gnu99
+  OBJECT_DIR = c-tutorial\CMakeFiles\3Calculate.dir
+  OBJECT_FILE_DIR = c-tutorial\CMakeFiles\3Calculate.dir
+
+
+# =============================================================================
+# Link build statements for EXECUTABLE target 3Calculate
+
+
+#############################################
+# Link the executable c-tutorial\3Calculate.exe
+
+build c-tutorial/3Calculate.exe: C_EXECUTABLE_LINKER__3Calculate_Debug c-tutorial/CMakeFiles/3Calculate.dir/3Calculate.c.obj
+  FLAGS = -g
+  LINK_LIBRARIES = -lkernel32 -luser32 -lgdi32 -lwinspool -lshell32 -lole32 -loleaut32 -luuid -lcomdlg32 -ladvapi32
+  OBJECT_DIR = c-tutorial\CMakeFiles\3Calculate.dir
+  POST_BUILD = cd .
+  PRE_LINK = cd .
+  TARGET_FILE = c-tutorial\3Calculate.exe
+  TARGET_IMPLIB = c-tutorial\lib3Calculate.dll.a
+  TARGET_PDB = 3Calculate.exe.dbg
+
 
 #############################################
 # Utility command for edit_cache
 
 build c-tutorial/CMakeFiles/edit_cache.util: CUSTOM_COMMAND
-  COMMAND = cmd.exe /C "cd /D C:\Users\Lenovo\CLionProjects\CLearning\cmake-build-debug\c-tutorial && "D:\CLion\CLion 2022.2.4\bin\cmake\win\bin\cmake.exe" -E echo "No interactive CMake dialog available.""
+  COMMAND = cmd.exe /C "cd /D D:\develop\git_repo\GitHub_cy\CLearning\cmake-build-debug\c-tutorial && "D:\CLion\CLion 2022.2.4\bin\cmake\win\bin\cmake.exe" -E echo "No interactive CMake dialog available.""
   DESC = No interactive CMake dialog available...
   restat = 1
 
@@ -244,7 +277,7 @@ build c-tutorial/edit_cache: phony c-tutorial/CMakeFiles/edit_cache.util
 # Utility command for rebuild_cache
 
 build c-tutorial/CMakeFiles/rebuild_cache.util: CUSTOM_COMMAND
-  COMMAND = cmd.exe /C "cd /D C:\Users\Lenovo\CLionProjects\CLearning\cmake-build-debug\c-tutorial && "D:\CLion\CLion 2022.2.4\bin\cmake\win\bin\cmake.exe" --regenerate-during-build -SC:\Users\Lenovo\CLionProjects\CLearning -BC:\Users\Lenovo\CLionProjects\CLearning\cmake-build-debug"
+  COMMAND = cmd.exe /C "cd /D D:\develop\git_repo\GitHub_cy\CLearning\cmake-build-debug\c-tutorial && "D:\CLion\CLion 2022.2.4\bin\cmake\win\bin\cmake.exe" --regenerate-during-build -SD:\develop\git_repo\GitHub_cy\CLearning -BD:\develop\git_repo\GitHub_cy\CLearning\cmake-build-debug"
   DESC = Running CMake to regenerate build system...
   pool = console
   restat = 1
@@ -262,6 +295,10 @@ build 2Definition: phony c-tutorial/2Definition.exe
 
 build 2Definition.exe: phony c-tutorial/2Definition.exe
 
+build 3Calculate: phony c-tutorial/3Calculate.exe
+
+build 3Calculate.exe: phony c-tutorial/3Calculate.exe
+
 build CLearning: phony CLearning.exe
 
 build test1: phony learning-test/test1.exe
@@ -274,21 +311,21 @@ build test1.exe: phony learning-test/test1.exe
 # =============================================================================
 
 #############################################
-# Folder: C:/Users/Lenovo/CLionProjects/CLearning/cmake-build-debug
+# Folder: D:/develop/git_repo/GitHub_cy/CLearning/cmake-build-debug
 
 build all: phony CLearning.exe learning-test/all c-tutorial/all
 
 # =============================================================================
 
 #############################################
-# Folder: C:/Users/Lenovo/CLionProjects/CLearning/cmake-build-debug/c-tutorial
+# Folder: D:/develop/git_repo/GitHub_cy/CLearning/cmake-build-debug/c-tutorial
 
-build c-tutorial/all: phony c-tutorial/1HelloWorld.exe c-tutorial/2Definition.exe
+build c-tutorial/all: phony c-tutorial/1HelloWorld.exe c-tutorial/2Definition.exe c-tutorial/3Calculate.exe
 
 # =============================================================================
 
 #############################################
-# Folder: C:/Users/Lenovo/CLionProjects/CLearning/cmake-build-debug/learning-test
+# Folder: D:/develop/git_repo/GitHub_cy/CLearning/cmake-build-debug/learning-test
 
 build learning-test/all: phony learning-test/test1.exe
 
