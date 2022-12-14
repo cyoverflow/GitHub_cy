@@ -261,6 +261,72 @@ build c-tutorial/3Calculate.exe: C_EXECUTABLE_LINKER__3Calculate_Debug c-tutoria
   TARGET_IMPLIB = c-tutorial\lib3Calculate.dll.a
   TARGET_PDB = 3Calculate.exe.dbg
 
+# =============================================================================
+# Object build statements for EXECUTABLE target 4BitwiseOperation
+
+
+#############################################
+# Order-only phony target for 4BitwiseOperation
+
+build cmake_object_order_depends_target_4BitwiseOperation: phony || c-tutorial/CMakeFiles/4BitwiseOperation.dir
+
+build c-tutorial/CMakeFiles/4BitwiseOperation.dir/4BitwiseOperation.c.obj: C_COMPILER__4BitwiseOperation_Debug D$:/develop/git_repo/GitHub_cy/CLearning/c-tutorial/4BitwiseOperation.c || cmake_object_order_depends_target_4BitwiseOperation
+  DEP_FILE = c-tutorial\CMakeFiles\4BitwiseOperation.dir\4BitwiseOperation.c.obj.d
+  FLAGS = -g -std=gnu99
+  OBJECT_DIR = c-tutorial\CMakeFiles\4BitwiseOperation.dir
+  OBJECT_FILE_DIR = c-tutorial\CMakeFiles\4BitwiseOperation.dir
+
+
+# =============================================================================
+# Link build statements for EXECUTABLE target 4BitwiseOperation
+
+
+#############################################
+# Link the executable c-tutorial\4BitwiseOperation.exe
+
+build c-tutorial/4BitwiseOperation.exe: C_EXECUTABLE_LINKER__4BitwiseOperation_Debug c-tutorial/CMakeFiles/4BitwiseOperation.dir/4BitwiseOperation.c.obj
+  FLAGS = -g
+  LINK_LIBRARIES = -lkernel32 -luser32 -lgdi32 -lwinspool -lshell32 -lole32 -loleaut32 -luuid -lcomdlg32 -ladvapi32
+  OBJECT_DIR = c-tutorial\CMakeFiles\4BitwiseOperation.dir
+  POST_BUILD = cd .
+  PRE_LINK = cd .
+  TARGET_FILE = c-tutorial\4BitwiseOperation.exe
+  TARGET_IMPLIB = c-tutorial\lib4BitwiseOperation.dll.a
+  TARGET_PDB = 4BitwiseOperation.exe.dbg
+
+# =============================================================================
+# Object build statements for EXECUTABLE target 5Sizeof
+
+
+#############################################
+# Order-only phony target for 5Sizeof
+
+build cmake_object_order_depends_target_5Sizeof: phony || c-tutorial/CMakeFiles/5Sizeof.dir
+
+build c-tutorial/CMakeFiles/5Sizeof.dir/5Sizeof.c.obj: C_COMPILER__5Sizeof_Debug D$:/develop/git_repo/GitHub_cy/CLearning/c-tutorial/5Sizeof.c || cmake_object_order_depends_target_5Sizeof
+  DEP_FILE = c-tutorial\CMakeFiles\5Sizeof.dir\5Sizeof.c.obj.d
+  FLAGS = -g -std=gnu99
+  OBJECT_DIR = c-tutorial\CMakeFiles\5Sizeof.dir
+  OBJECT_FILE_DIR = c-tutorial\CMakeFiles\5Sizeof.dir
+
+
+# =============================================================================
+# Link build statements for EXECUTABLE target 5Sizeof
+
+
+#############################################
+# Link the executable c-tutorial\5Sizeof.exe
+
+build c-tutorial/5Sizeof.exe: C_EXECUTABLE_LINKER__5Sizeof_Debug c-tutorial/CMakeFiles/5Sizeof.dir/5Sizeof.c.obj
+  FLAGS = -g
+  LINK_LIBRARIES = -lkernel32 -luser32 -lgdi32 -lwinspool -lshell32 -lole32 -loleaut32 -luuid -lcomdlg32 -ladvapi32
+  OBJECT_DIR = c-tutorial\CMakeFiles\5Sizeof.dir
+  POST_BUILD = cd .
+  PRE_LINK = cd .
+  TARGET_FILE = c-tutorial\5Sizeof.exe
+  TARGET_IMPLIB = c-tutorial\lib5Sizeof.dll.a
+  TARGET_PDB = 5Sizeof.exe.dbg
+
 
 #############################################
 # Utility command for edit_cache
@@ -299,6 +365,14 @@ build 3Calculate: phony c-tutorial/3Calculate.exe
 
 build 3Calculate.exe: phony c-tutorial/3Calculate.exe
 
+build 4BitwiseOperation: phony c-tutorial/4BitwiseOperation.exe
+
+build 4BitwiseOperation.exe: phony c-tutorial/4BitwiseOperation.exe
+
+build 5Sizeof: phony c-tutorial/5Sizeof.exe
+
+build 5Sizeof.exe: phony c-tutorial/5Sizeof.exe
+
 build CLearning: phony CLearning.exe
 
 build test1: phony learning-test/test1.exe
@@ -320,7 +394,7 @@ build all: phony CLearning.exe learning-test/all c-tutorial/all
 #############################################
 # Folder: D:/develop/git_repo/GitHub_cy/CLearning/cmake-build-debug/c-tutorial
 
-build c-tutorial/all: phony c-tutorial/1HelloWorld.exe c-tutorial/2Definition.exe c-tutorial/3Calculate.exe
+build c-tutorial/all: phony c-tutorial/1HelloWorld.exe c-tutorial/2Definition.exe c-tutorial/3Calculate.exe c-tutorial/4BitwiseOperation.exe c-tutorial/5Sizeof.exe
 
 # =============================================================================
 

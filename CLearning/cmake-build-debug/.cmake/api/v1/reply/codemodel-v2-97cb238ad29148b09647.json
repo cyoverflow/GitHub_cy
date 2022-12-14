@@ -1,0 +1,174 @@
+{
+	"configurations" : 
+	[
+		{
+			"directories" : 
+			[
+				{
+					"build" : ".",
+					"childIndexes" : 
+					[
+						1,
+						2
+					],
+					"jsonFile" : "directory-.-Debug-d0094a50bb2071803777.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.23"
+					},
+					"projectIndex" : 0,
+					"source" : ".",
+					"targetIndexes" : 
+					[
+						5
+					]
+				},
+				{
+					"build" : "learning-test",
+					"jsonFile" : "directory-learning-test-Debug-a68512adca1d155b7c76.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.23"
+					},
+					"parentIndex" : 0,
+					"projectIndex" : 1,
+					"source" : "learning-test",
+					"targetIndexes" : 
+					[
+						6
+					]
+				},
+				{
+					"build" : "c-tutorial",
+					"jsonFile" : "directory-c-tutorial-Debug-e95c2d03083dcbb7a042.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.23"
+					},
+					"parentIndex" : 0,
+					"projectIndex" : 2,
+					"source" : "c-tutorial",
+					"targetIndexes" : 
+					[
+						0,
+						1,
+						2,
+						3,
+						4
+					]
+				}
+			],
+			"name" : "Debug",
+			"projects" : 
+			[
+				{
+					"childIndexes" : 
+					[
+						1,
+						2
+					],
+					"directoryIndexes" : 
+					[
+						0
+					],
+					"name" : "CLearning",
+					"targetIndexes" : 
+					[
+						5
+					]
+				},
+				{
+					"directoryIndexes" : 
+					[
+						1
+					],
+					"name" : "learning-test",
+					"parentIndex" : 0,
+					"targetIndexes" : 
+					[
+						6
+					]
+				},
+				{
+					"directoryIndexes" : 
+					[
+						2
+					],
+					"name" : "c-tutorial",
+					"parentIndex" : 0,
+					"targetIndexes" : 
+					[
+						0,
+						1,
+						2,
+						3,
+						4
+					]
+				}
+			],
+			"targets" : 
+			[
+				{
+					"directoryIndex" : 2,
+					"id" : "1HelloWorld::@0379459042231726acf6",
+					"jsonFile" : "target-1HelloWorld-Debug-099eed36e8009064ccb2.json",
+					"name" : "1HelloWorld",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 2,
+					"id" : "2Definition::@0379459042231726acf6",
+					"jsonFile" : "target-2Definition-Debug-816729fefc8adaca5dcc.json",
+					"name" : "2Definition",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 2,
+					"id" : "3Calculate::@0379459042231726acf6",
+					"jsonFile" : "target-3Calculate-Debug-25fb5ce680fc0781e657.json",
+					"name" : "3Calculate",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 2,
+					"id" : "4BitwiseOperation::@0379459042231726acf6",
+					"jsonFile" : "target-4BitwiseOperation-Debug-27e68920c3bd649c9508.json",
+					"name" : "4BitwiseOperation",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 2,
+					"id" : "5Sizeof::@0379459042231726acf6",
+					"jsonFile" : "target-5Sizeof-Debug-33894ccc238580590de5.json",
+					"name" : "5Sizeof",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "CLearning::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-CLearning-Debug-a611903350db1c90c6dd.json",
+					"name" : "CLearning",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 1,
+					"id" : "test1::@f7d684093f1d08503e23",
+					"jsonFile" : "target-test1-Debug-bc83fa796a01cd5093ef.json",
+					"name" : "test1",
+					"projectIndex" : 1
+				}
+			]
+		}
+	],
+	"kind" : "codemodel",
+	"paths" : 
+	{
+		"build" : "D:/develop/git_repo/GitHub_cy/CLearning/cmake-build-debug",
+		"source" : "D:/develop/git_repo/GitHub_cy/CLearning"
+	},
+	"version" : 
+	{
+		"major" : 2,
+		"minor" : 4
+	}
+}

@@ -7,5 +7,7 @@ D:/develop/git_repo/GitHub_cy/CLearning/cmake-build-debug/learning-test/CMakeFil
 D:/develop/git_repo/GitHub_cy/CLearning/cmake-build-debug/c-tutorial/CMakeFiles/1HelloWorld.dir
 D:/develop/git_repo/GitHub_cy/CLearning/cmake-build-debug/c-tutorial/CMakeFiles/2Definition.dir
 D:/develop/git_repo/GitHub_cy/CLearning/cmake-build-debug/c-tutorial/CMakeFiles/3Calculate.dir
+D:/develop/git_repo/GitHub_cy/CLearning/cmake-build-debug/c-tutorial/CMakeFiles/4BitwiseOperation.dir
+D:/develop/git_repo/GitHub_cy/CLearning/cmake-build-debug/c-tutorial/CMakeFiles/5Sizeof.dir
 D:/develop/git_repo/GitHub_cy/CLearning/cmake-build-debug/c-tutorial/CMakeFiles/edit_cache.dir
 D:/develop/git_repo/GitHub_cy/CLearning/cmake-build-debug/c-tutorial/CMakeFiles/rebuild_cache.dir

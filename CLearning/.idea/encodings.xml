@@ -4,6 +4,8 @@
     <file url="file://$PROJECT_DIR$/CMakeLists.txt" charset="GBK" />
     <file url="file://$PROJECT_DIR$/c-tutorial/2Definition.c" charset="GBK" />
     <file url="file://$PROJECT_DIR$/c-tutorial/3Calculate.c" charset="GBK" />
+    <file url="file://$PROJECT_DIR$/c-tutorial/4BitwiseOperation.c" charset="GBK" />
+    <file url="file://$PROJECT_DIR$/c-tutorial/5Sizeof.c" charset="GBK" />
     <file url="file://$PROJECT_DIR$/learning-test/test1.c" charset="GBK" />
     <file url="PROJECT" charset="UTF-8" />
   </component>

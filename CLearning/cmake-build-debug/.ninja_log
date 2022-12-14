@@ -1,4 +1,5 @@
 # ninja log v5
+2	235	6926912003205375	c-tutorial/CMakeFiles/3Calculate.dir/3Calculate.c.obj	ae258e2e0ffaac4d
 4	595	6919866135906730	learning-test/CMakeFiles/test1.dir/test1.c.obj	c8eef52e779e9560
 601	1224	6919866142059559	learning-test/test1.exe	98d1e7738dfabcfe
 2	1374	6919555300938027	CMakeFiles/CLearning.dir/main.c.obj	89bc5797805f9ded
@@ -9,7 +10,10 @@
 388	955	6919904759808740	c-tutorial/2Definition.exe	4f85acb686452581
 1	1915	6923498117921270	c-tutorial/CMakeFiles/1HelloWorld.dir/1HelloWorld.c.obj	f3060649f3a43544
 1916	2721	6923498125905730	c-tutorial/1HelloWorld.exe	b8acdff50296db47
-1	799	6926909885394191	c-tutorial/CMakeFiles/3Calculate.dir/3Calculate.c.obj	ae258e2e0ffaac4d
-801	1398	6926909891325969	c-tutorial/3Calculate.exe	de5bd186f1e583b2
-2	226	6926910136338376	c-tutorial/CMakeFiles/3Calculate.dir/3Calculate.c.obj	ae258e2e0ffaac4d
-228	589	6926910139858615	c-tutorial/3Calculate.exe	de5bd186f1e583b2
+236	647	6926912007268085	c-tutorial/3Calculate.exe	de5bd186f1e583b2
+4	322	6926972603302701	c-tutorial/CMakeFiles/4BitwiseOperation.dir/4BitwiseOperation.c.obj	23a88d5dbc0daf
+324	789	6926972607870482	c-tutorial/4BitwiseOperation.exe	87a48d17d7d99540
+1	254	6926996383788906	c-tutorial/CMakeFiles/5Sizeof.dir/5Sizeof.c.obj	73690154ae67d6e9
+257	635	6926996387510591	c-tutorial/5Sizeof.exe	66fefb3f2007a2da
+2	229	6926996460260026	c-tutorial/CMakeFiles/5Sizeof.dir/5Sizeof.c.obj	73690154ae67d6e9
+231	602	6926996463905388	c-tutorial/5Sizeof.exe	66fefb3f2007a2da
