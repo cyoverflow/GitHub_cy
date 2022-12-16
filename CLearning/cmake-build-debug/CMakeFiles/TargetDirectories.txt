@@ -1,6 +1,10 @@
 D:/develop/git_repo/GitHub_cy/CLearning/cmake-build-debug/CMakeFiles/CLearning.dir
 D:/develop/git_repo/GitHub_cy/CLearning/cmake-build-debug/CMakeFiles/edit_cache.dir
 D:/develop/git_repo/GitHub_cy/CLearning/cmake-build-debug/CMakeFiles/rebuild_cache.dir
+D:/develop/git_repo/GitHub_cy/CLearning/cmake-build-debug/learning-test/CMakeFiles/11.4Swap.dir
+D:/develop/git_repo/GitHub_cy/CLearning/cmake-build-debug/learning-test/CMakeFiles/11.5Split-time.dir
+D:/develop/git_repo/GitHub_cy/CLearning/cmake-build-debug/learning-test/CMakeFiles/11.6Find-two-largest.dir
+D:/develop/git_repo/GitHub_cy/CLearning/cmake-build-debug/learning-test/CMakeFiles/11.7Fine-middle.dir
 D:/develop/git_repo/GitHub_cy/CLearning/cmake-build-debug/learning-test/CMakeFiles/test1.dir
 D:/develop/git_repo/GitHub_cy/CLearning/cmake-build-debug/learning-test/CMakeFiles/edit_cache.dir
 D:/develop/git_repo/GitHub_cy/CLearning/cmake-build-debug/learning-test/CMakeFiles/rebuild_cache.dir

@@ -102,6 +102,138 @@ build rebuild_cache: phony CMakeFiles/rebuild_cache.util
 # =============================================================================
 
 # =============================================================================
+# Object build statements for EXECUTABLE target 11.4Swap
+
+
+#############################################
+# Order-only phony target for 11.4Swap
+
+build cmake_object_order_depends_target_11.4Swap: phony || learning-test/CMakeFiles/11.4Swap.dir
+
+build learning-test/CMakeFiles/11.4Swap.dir/11.4Swap.c.obj: C_COMPILER__11.2e4Swap_Debug D$:/develop/git_repo/GitHub_cy/CLearning/learning-test/11.4Swap.c || cmake_object_order_depends_target_11.4Swap
+  DEP_FILE = learning-test\CMakeFiles\11.4Swap.dir\11.4Swap.c.obj.d
+  FLAGS = -g -std=gnu99
+  OBJECT_DIR = learning-test\CMakeFiles\11.4Swap.dir
+  OBJECT_FILE_DIR = learning-test\CMakeFiles\11.4Swap.dir
+
+
+# =============================================================================
+# Link build statements for EXECUTABLE target 11.4Swap
+
+
+#############################################
+# Link the executable learning-test\11.4Swap.exe
+
+build learning-test/11.4Swap.exe: C_EXECUTABLE_LINKER__11.2e4Swap_Debug learning-test/CMakeFiles/11.4Swap.dir/11.4Swap.c.obj
+  FLAGS = -g
+  LINK_LIBRARIES = -lkernel32 -luser32 -lgdi32 -lwinspool -lshell32 -lole32 -loleaut32 -luuid -lcomdlg32 -ladvapi32
+  OBJECT_DIR = learning-test\CMakeFiles\11.4Swap.dir
+  POST_BUILD = cd .
+  PRE_LINK = cd .
+  TARGET_FILE = learning-test\11.4Swap.exe
+  TARGET_IMPLIB = learning-test\lib11.4Swap.dll.a
+  TARGET_PDB = 11.4Swap.exe.dbg
+
+# =============================================================================
+# Object build statements for EXECUTABLE target 11.5Split-time
+
+
+#############################################
+# Order-only phony target for 11.5Split-time
+
+build cmake_object_order_depends_target_11.5Split-time: phony || learning-test/CMakeFiles/11.5Split-time.dir
+
+build learning-test/CMakeFiles/11.5Split-time.dir/11.5Split-time.c.obj: C_COMPILER__11.2e5Split-time_Debug D$:/develop/git_repo/GitHub_cy/CLearning/learning-test/11.5Split-time.c || cmake_object_order_depends_target_11.5Split-time
+  DEP_FILE = learning-test\CMakeFiles\11.5Split-time.dir\11.5Split-time.c.obj.d
+  FLAGS = -g -std=gnu99
+  OBJECT_DIR = learning-test\CMakeFiles\11.5Split-time.dir
+  OBJECT_FILE_DIR = learning-test\CMakeFiles\11.5Split-time.dir
+
+
+# =============================================================================
+# Link build statements for EXECUTABLE target 11.5Split-time
+
+
+#############################################
+# Link the executable learning-test\11.5Split-time.exe
+
+build learning-test/11.5Split-time.exe: C_EXECUTABLE_LINKER__11.2e5Split-time_Debug learning-test/CMakeFiles/11.5Split-time.dir/11.5Split-time.c.obj
+  FLAGS = -g
+  LINK_LIBRARIES = -lkernel32 -luser32 -lgdi32 -lwinspool -lshell32 -lole32 -loleaut32 -luuid -lcomdlg32 -ladvapi32
+  OBJECT_DIR = learning-test\CMakeFiles\11.5Split-time.dir
+  POST_BUILD = cd .
+  PRE_LINK = cd .
+  TARGET_FILE = learning-test\11.5Split-time.exe
+  TARGET_IMPLIB = learning-test\lib11.5Split-time.dll.a
+  TARGET_PDB = 11.5Split-time.exe.dbg
+
+# =============================================================================
+# Object build statements for EXECUTABLE target 11.6Find-two-largest
+
+
+#############################################
+# Order-only phony target for 11.6Find-two-largest
+
+build cmake_object_order_depends_target_11.6Find-two-largest: phony || learning-test/CMakeFiles/11.6Find-two-largest.dir
+
+build learning-test/CMakeFiles/11.6Find-two-largest.dir/11.6Find-two-largest.c.obj: C_COMPILER__11.2e6Find-two-largest_Debug D$:/develop/git_repo/GitHub_cy/CLearning/learning-test/11.6Find-two-largest.c || cmake_object_order_depends_target_11.6Find-two-largest
+  DEP_FILE = learning-test\CMakeFiles\11.6Find-two-largest.dir\11.6Find-two-largest.c.obj.d
+  FLAGS = -g -std=gnu99
+  OBJECT_DIR = learning-test\CMakeFiles\11.6Find-two-largest.dir
+  OBJECT_FILE_DIR = learning-test\CMakeFiles\11.6Find-two-largest.dir
+
+
+# =============================================================================
+# Link build statements for EXECUTABLE target 11.6Find-two-largest
+
+
+#############################################
+# Link the executable learning-test\11.6Find-two-largest.exe
+
+build learning-test/11.6Find-two-largest.exe: C_EXECUTABLE_LINKER__11.2e6Find-two-largest_Debug learning-test/CMakeFiles/11.6Find-two-largest.dir/11.6Find-two-largest.c.obj
+  FLAGS = -g
+  LINK_LIBRARIES = -lkernel32 -luser32 -lgdi32 -lwinspool -lshell32 -lole32 -loleaut32 -luuid -lcomdlg32 -ladvapi32
+  OBJECT_DIR = learning-test\CMakeFiles\11.6Find-two-largest.dir
+  POST_BUILD = cd .
+  PRE_LINK = cd .
+  TARGET_FILE = learning-test\11.6Find-two-largest.exe
+  TARGET_IMPLIB = learning-test\lib11.6Find-two-largest.dll.a
+  TARGET_PDB = 11.6Find-two-largest.exe.dbg
+
+# =============================================================================
+# Object build statements for EXECUTABLE target 11.7Fine-middle
+
+
+#############################################
+# Order-only phony target for 11.7Fine-middle
+
+build cmake_object_order_depends_target_11.7Fine-middle: phony || learning-test/CMakeFiles/11.7Fine-middle.dir
+
+build learning-test/CMakeFiles/11.7Fine-middle.dir/11.7Fine-middle.c.obj: C_COMPILER__11.2e7Fine-middle_Debug D$:/develop/git_repo/GitHub_cy/CLearning/learning-test/11.7Fine-middle.c || cmake_object_order_depends_target_11.7Fine-middle
+  DEP_FILE = learning-test\CMakeFiles\11.7Fine-middle.dir\11.7Fine-middle.c.obj.d
+  FLAGS = -g -std=gnu99
+  OBJECT_DIR = learning-test\CMakeFiles\11.7Fine-middle.dir
+  OBJECT_FILE_DIR = learning-test\CMakeFiles\11.7Fine-middle.dir
+
+
+# =============================================================================
+# Link build statements for EXECUTABLE target 11.7Fine-middle
+
+
+#############################################
+# Link the executable learning-test\11.7Fine-middle.exe
+
+build learning-test/11.7Fine-middle.exe: C_EXECUTABLE_LINKER__11.2e7Fine-middle_Debug learning-test/CMakeFiles/11.7Fine-middle.dir/11.7Fine-middle.c.obj
+  FLAGS = -g
+  LINK_LIBRARIES = -lkernel32 -luser32 -lgdi32 -lwinspool -lshell32 -lole32 -loleaut32 -luuid -lcomdlg32 -ladvapi32
+  OBJECT_DIR = learning-test\CMakeFiles\11.7Fine-middle.dir
+  POST_BUILD = cd .
+  PRE_LINK = cd .
+  TARGET_FILE = learning-test\11.7Fine-middle.exe
+  TARGET_IMPLIB = learning-test\lib11.7Fine-middle.dll.a
+  TARGET_PDB = 11.7Fine-middle.exe.dbg
+
+# =============================================================================
 # Object build statements for EXECUTABLE target test1
 
 
@@ -555,6 +687,22 @@ build 10Pointer: phony c-tutorial/10Pointer.exe
 
 build 10Pointer.exe: phony c-tutorial/10Pointer.exe
 
+build 11.4Swap: phony learning-test/11.4Swap.exe
+
+build 11.4Swap.exe: phony learning-test/11.4Swap.exe
+
+build 11.5Split-time: phony learning-test/11.5Split-time.exe
+
+build 11.5Split-time.exe: phony learning-test/11.5Split-time.exe
+
+build 11.6Find-two-largest: phony learning-test/11.6Find-two-largest.exe
+
+build 11.6Find-two-largest.exe: phony learning-test/11.6Find-two-largest.exe
+
+build 11.7Fine-middle: phony learning-test/11.7Fine-middle.exe
+
+build 11.7Fine-middle.exe: phony learning-test/11.7Fine-middle.exe
+
 build 11UsingPointer: phony c-tutorial/11UsingPointer.exe
 
 build 11UsingPointer.exe: phony c-tutorial/11UsingPointer.exe
@@ -623,7 +771,7 @@ build c-tutorial/all: phony c-tutorial/10Pointer.exe c-tutorial/11UsingPointer.e
 #############################################
 # Folder: D:/develop/git_repo/GitHub_cy/CLearning/cmake-build-debug/learning-test
 
-build learning-test/all: phony learning-test/test1.exe
+build learning-test/all: phony learning-test/11.4Swap.exe learning-test/11.5Split-time.exe learning-test/11.6Find-two-largest.exe learning-test/11.7Fine-middle.exe learning-test/test1.exe
 
 # =============================================================================
 # Built-in targets
