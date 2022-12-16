@@ -163,6 +163,72 @@ build learning-test/rebuild_cache: phony learning-test/CMakeFiles/rebuild_cache.
 # =============================================================================
 
 # =============================================================================
+# Object build statements for EXECUTABLE target 10Pointer
+
+
+#############################################
+# Order-only phony target for 10Pointer
+
+build cmake_object_order_depends_target_10Pointer: phony || c-tutorial/CMakeFiles/10Pointer.dir
+
+build c-tutorial/CMakeFiles/10Pointer.dir/10Pointer.c.obj: C_COMPILER__10Pointer_Debug D$:/develop/git_repo/GitHub_cy/CLearning/c-tutorial/10Pointer.c || cmake_object_order_depends_target_10Pointer
+  DEP_FILE = c-tutorial\CMakeFiles\10Pointer.dir\10Pointer.c.obj.d
+  FLAGS = -g -std=gnu99
+  OBJECT_DIR = c-tutorial\CMakeFiles\10Pointer.dir
+  OBJECT_FILE_DIR = c-tutorial\CMakeFiles\10Pointer.dir
+
+
+# =============================================================================
+# Link build statements for EXECUTABLE target 10Pointer
+
+
+#############################################
+# Link the executable c-tutorial\10Pointer.exe
+
+build c-tutorial/10Pointer.exe: C_EXECUTABLE_LINKER__10Pointer_Debug c-tutorial/CMakeFiles/10Pointer.dir/10Pointer.c.obj
+  FLAGS = -g
+  LINK_LIBRARIES = -lkernel32 -luser32 -lgdi32 -lwinspool -lshell32 -lole32 -loleaut32 -luuid -lcomdlg32 -ladvapi32
+  OBJECT_DIR = c-tutorial\CMakeFiles\10Pointer.dir
+  POST_BUILD = cd .
+  PRE_LINK = cd .
+  TARGET_FILE = c-tutorial\10Pointer.exe
+  TARGET_IMPLIB = c-tutorial\lib10Pointer.dll.a
+  TARGET_PDB = 10Pointer.exe.dbg
+
+# =============================================================================
+# Object build statements for EXECUTABLE target 11UsingPointer
+
+
+#############################################
+# Order-only phony target for 11UsingPointer
+
+build cmake_object_order_depends_target_11UsingPointer: phony || c-tutorial/CMakeFiles/11UsingPointer.dir
+
+build c-tutorial/CMakeFiles/11UsingPointer.dir/11UsingPointer.c.obj: C_COMPILER__11UsingPointer_Debug D$:/develop/git_repo/GitHub_cy/CLearning/c-tutorial/11UsingPointer.c || cmake_object_order_depends_target_11UsingPointer
+  DEP_FILE = c-tutorial\CMakeFiles\11UsingPointer.dir\11UsingPointer.c.obj.d
+  FLAGS = -g -std=gnu99
+  OBJECT_DIR = c-tutorial\CMakeFiles\11UsingPointer.dir
+  OBJECT_FILE_DIR = c-tutorial\CMakeFiles\11UsingPointer.dir
+
+
+# =============================================================================
+# Link build statements for EXECUTABLE target 11UsingPointer
+
+
+#############################################
+# Link the executable c-tutorial\11UsingPointer.exe
+
+build c-tutorial/11UsingPointer.exe: C_EXECUTABLE_LINKER__11UsingPointer_Debug c-tutorial/CMakeFiles/11UsingPointer.dir/11UsingPointer.c.obj
+  FLAGS = -g
+  LINK_LIBRARIES = -lkernel32 -luser32 -lgdi32 -lwinspool -lshell32 -lole32 -loleaut32 -luuid -lcomdlg32 -ladvapi32
+  OBJECT_DIR = c-tutorial\CMakeFiles\11UsingPointer.dir
+  POST_BUILD = cd .
+  PRE_LINK = cd .
+  TARGET_FILE = c-tutorial\11UsingPointer.exe
+  TARGET_IMPLIB = c-tutorial\lib11UsingPointer.dll.a
+  TARGET_PDB = 11UsingPointer.exe.dbg
+
+# =============================================================================
 # Object build statements for EXECUTABLE target 1HelloWorld
 
 
@@ -327,6 +393,138 @@ build c-tutorial/5Sizeof.exe: C_EXECUTABLE_LINKER__5Sizeof_Debug c-tutorial/CMak
   TARGET_IMPLIB = c-tutorial\lib5Sizeof.dll.a
   TARGET_PDB = 5Sizeof.exe.dbg
 
+# =============================================================================
+# Object build statements for EXECUTABLE target 6Enum
+
+
+#############################################
+# Order-only phony target for 6Enum
+
+build cmake_object_order_depends_target_6Enum: phony || c-tutorial/CMakeFiles/6Enum.dir
+
+build c-tutorial/CMakeFiles/6Enum.dir/6Enum.c.obj: C_COMPILER__6Enum_Debug D$:/develop/git_repo/GitHub_cy/CLearning/c-tutorial/6Enum.c || cmake_object_order_depends_target_6Enum
+  DEP_FILE = c-tutorial\CMakeFiles\6Enum.dir\6Enum.c.obj.d
+  FLAGS = -g -std=gnu99
+  OBJECT_DIR = c-tutorial\CMakeFiles\6Enum.dir
+  OBJECT_FILE_DIR = c-tutorial\CMakeFiles\6Enum.dir
+
+
+# =============================================================================
+# Link build statements for EXECUTABLE target 6Enum
+
+
+#############################################
+# Link the executable c-tutorial\6Enum.exe
+
+build c-tutorial/6Enum.exe: C_EXECUTABLE_LINKER__6Enum_Debug c-tutorial/CMakeFiles/6Enum.dir/6Enum.c.obj
+  FLAGS = -g
+  LINK_LIBRARIES = -lkernel32 -luser32 -lgdi32 -lwinspool -lshell32 -lole32 -loleaut32 -luuid -lcomdlg32 -ladvapi32
+  OBJECT_DIR = c-tutorial\CMakeFiles\6Enum.dir
+  POST_BUILD = cd .
+  PRE_LINK = cd .
+  TARGET_FILE = c-tutorial\6Enum.exe
+  TARGET_IMPLIB = c-tutorial\lib6Enum.dll.a
+  TARGET_PDB = 6Enum.exe.dbg
+
+# =============================================================================
+# Object build statements for EXECUTABLE target 7ReadEnum
+
+
+#############################################
+# Order-only phony target for 7ReadEnum
+
+build cmake_object_order_depends_target_7ReadEnum: phony || c-tutorial/CMakeFiles/7ReadEnum.dir
+
+build c-tutorial/CMakeFiles/7ReadEnum.dir/7ReadEnum.c.obj: C_COMPILER__7ReadEnum_Debug D$:/develop/git_repo/GitHub_cy/CLearning/c-tutorial/7ReadEnum.c || cmake_object_order_depends_target_7ReadEnum
+  DEP_FILE = c-tutorial\CMakeFiles\7ReadEnum.dir\7ReadEnum.c.obj.d
+  FLAGS = -g -std=gnu99
+  OBJECT_DIR = c-tutorial\CMakeFiles\7ReadEnum.dir
+  OBJECT_FILE_DIR = c-tutorial\CMakeFiles\7ReadEnum.dir
+
+
+# =============================================================================
+# Link build statements for EXECUTABLE target 7ReadEnum
+
+
+#############################################
+# Link the executable c-tutorial\7ReadEnum.exe
+
+build c-tutorial/7ReadEnum.exe: C_EXECUTABLE_LINKER__7ReadEnum_Debug c-tutorial/CMakeFiles/7ReadEnum.dir/7ReadEnum.c.obj
+  FLAGS = -g
+  LINK_LIBRARIES = -lkernel32 -luser32 -lgdi32 -lwinspool -lshell32 -lole32 -loleaut32 -luuid -lcomdlg32 -ladvapi32
+  OBJECT_DIR = c-tutorial\CMakeFiles\7ReadEnum.dir
+  POST_BUILD = cd .
+  PRE_LINK = cd .
+  TARGET_FILE = c-tutorial\7ReadEnum.exe
+  TARGET_IMPLIB = c-tutorial\lib7ReadEnum.dll.a
+  TARGET_PDB = 7ReadEnum.exe.dbg
+
+# =============================================================================
+# Object build statements for EXECUTABLE target 8.EnumInSwitch
+
+
+#############################################
+# Order-only phony target for 8.EnumInSwitch
+
+build cmake_object_order_depends_target_8.EnumInSwitch: phony || c-tutorial/CMakeFiles/8.EnumInSwitch.dir
+
+build c-tutorial/CMakeFiles/8.EnumInSwitch.dir/8.EnumInSwitch.c.obj: C_COMPILER__8.2eEnumInSwitch_Debug D$:/develop/git_repo/GitHub_cy/CLearning/c-tutorial/8.EnumInSwitch.c || cmake_object_order_depends_target_8.EnumInSwitch
+  DEP_FILE = c-tutorial\CMakeFiles\8.EnumInSwitch.dir\8.EnumInSwitch.c.obj.d
+  FLAGS = -g -std=gnu99
+  OBJECT_DIR = c-tutorial\CMakeFiles\8.EnumInSwitch.dir
+  OBJECT_FILE_DIR = c-tutorial\CMakeFiles\8.EnumInSwitch.dir
+
+
+# =============================================================================
+# Link build statements for EXECUTABLE target 8.EnumInSwitch
+
+
+#############################################
+# Link the executable c-tutorial\8.EnumInSwitch.exe
+
+build c-tutorial/8.EnumInSwitch.exe: C_EXECUTABLE_LINKER__8.2eEnumInSwitch_Debug c-tutorial/CMakeFiles/8.EnumInSwitch.dir/8.EnumInSwitch.c.obj
+  FLAGS = -g
+  LINK_LIBRARIES = -lkernel32 -luser32 -lgdi32 -lwinspool -lshell32 -lole32 -loleaut32 -luuid -lcomdlg32 -ladvapi32
+  OBJECT_DIR = c-tutorial\CMakeFiles\8.EnumInSwitch.dir
+  POST_BUILD = cd .
+  PRE_LINK = cd .
+  TARGET_FILE = c-tutorial\8.EnumInSwitch.exe
+  TARGET_IMPLIB = c-tutorial\lib8.EnumInSwitch.dll.a
+  TARGET_PDB = 8.EnumInSwitch.exe.dbg
+
+# =============================================================================
+# Object build statements for EXECUTABLE target 9IntegerToEnum
+
+
+#############################################
+# Order-only phony target for 9IntegerToEnum
+
+build cmake_object_order_depends_target_9IntegerToEnum: phony || c-tutorial/CMakeFiles/9IntegerToEnum.dir
+
+build c-tutorial/CMakeFiles/9IntegerToEnum.dir/9IntegerToEnum.c.obj: C_COMPILER__9IntegerToEnum_Debug D$:/develop/git_repo/GitHub_cy/CLearning/c-tutorial/9IntegerToEnum.c || cmake_object_order_depends_target_9IntegerToEnum
+  DEP_FILE = c-tutorial\CMakeFiles\9IntegerToEnum.dir\9IntegerToEnum.c.obj.d
+  FLAGS = -g -std=gnu99
+  OBJECT_DIR = c-tutorial\CMakeFiles\9IntegerToEnum.dir
+  OBJECT_FILE_DIR = c-tutorial\CMakeFiles\9IntegerToEnum.dir
+
+
+# =============================================================================
+# Link build statements for EXECUTABLE target 9IntegerToEnum
+
+
+#############################################
+# Link the executable c-tutorial\9IntegerToEnum.exe
+
+build c-tutorial/9IntegerToEnum.exe: C_EXECUTABLE_LINKER__9IntegerToEnum_Debug c-tutorial/CMakeFiles/9IntegerToEnum.dir/9IntegerToEnum.c.obj
+  FLAGS = -g
+  LINK_LIBRARIES = -lkernel32 -luser32 -lgdi32 -lwinspool -lshell32 -lole32 -loleaut32 -luuid -lcomdlg32 -ladvapi32
+  OBJECT_DIR = c-tutorial\CMakeFiles\9IntegerToEnum.dir
+  POST_BUILD = cd .
+  PRE_LINK = cd .
+  TARGET_FILE = c-tutorial\9IntegerToEnum.exe
+  TARGET_IMPLIB = c-tutorial\lib9IntegerToEnum.dll.a
+  TARGET_PDB = 9IntegerToEnum.exe.dbg
+
 
 #############################################
 # Utility command for edit_cache
@@ -353,6 +551,14 @@ build c-tutorial/rebuild_cache: phony c-tutorial/CMakeFiles/rebuild_cache.util
 # =============================================================================
 # Target aliases.
 
+build 10Pointer: phony c-tutorial/10Pointer.exe
+
+build 10Pointer.exe: phony c-tutorial/10Pointer.exe
+
+build 11UsingPointer: phony c-tutorial/11UsingPointer.exe
+
+build 11UsingPointer.exe: phony c-tutorial/11UsingPointer.exe
+
 build 1HelloWorld: phony c-tutorial/1HelloWorld.exe
 
 build 1HelloWorld.exe: phony c-tutorial/1HelloWorld.exe
@@ -372,6 +578,22 @@ build 4BitwiseOperation.exe: phony c-tutorial/4BitwiseOperation.exe
 build 5Sizeof: phony c-tutorial/5Sizeof.exe
 
 build 5Sizeof.exe: phony c-tutorial/5Sizeof.exe
+
+build 6Enum: phony c-tutorial/6Enum.exe
+
+build 6Enum.exe: phony c-tutorial/6Enum.exe
+
+build 7ReadEnum: phony c-tutorial/7ReadEnum.exe
+
+build 7ReadEnum.exe: phony c-tutorial/7ReadEnum.exe
+
+build 8.EnumInSwitch: phony c-tutorial/8.EnumInSwitch.exe
+
+build 8.EnumInSwitch.exe: phony c-tutorial/8.EnumInSwitch.exe
+
+build 9IntegerToEnum: phony c-tutorial/9IntegerToEnum.exe
+
+build 9IntegerToEnum.exe: phony c-tutorial/9IntegerToEnum.exe
 
 build CLearning: phony CLearning.exe
 
@@ -394,7 +616,7 @@ build all: phony CLearning.exe learning-test/all c-tutorial/all
 #############################################
 # Folder: D:/develop/git_repo/GitHub_cy/CLearning/cmake-build-debug/c-tutorial
 
-build c-tutorial/all: phony c-tutorial/1HelloWorld.exe c-tutorial/2Definition.exe c-tutorial/3Calculate.exe c-tutorial/4BitwiseOperation.exe c-tutorial/5Sizeof.exe
+build c-tutorial/all: phony c-tutorial/10Pointer.exe c-tutorial/11UsingPointer.exe c-tutorial/1HelloWorld.exe c-tutorial/2Definition.exe c-tutorial/3Calculate.exe c-tutorial/4BitwiseOperation.exe c-tutorial/5Sizeof.exe c-tutorial/6Enum.exe c-tutorial/7ReadEnum.exe c-tutorial/8.EnumInSwitch.exe c-tutorial/9IntegerToEnum.exe
 
 # =============================================================================
 

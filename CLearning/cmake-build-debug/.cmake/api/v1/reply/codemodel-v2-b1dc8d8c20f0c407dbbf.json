@@ -20,7 +20,7 @@
 					"source" : ".",
 					"targetIndexes" : 
 					[
-						5
+						11
 					]
 				},
 				{
@@ -35,7 +35,7 @@
 					"source" : "learning-test",
 					"targetIndexes" : 
 					[
-						6
+						12
 					]
 				},
 				{
@@ -54,7 +54,13 @@
 						1,
 						2,
 						3,
-						4
+						4,
+						5,
+						6,
+						7,
+						8,
+						9,
+						10
 					]
 				}
 			],
@@ -74,7 +80,7 @@
 					"name" : "CLearning",
 					"targetIndexes" : 
 					[
-						5
+						11
 					]
 				},
 				{
@@ -86,7 +92,7 @@
 					"parentIndex" : 0,
 					"targetIndexes" : 
 					[
-						6
+						12
 					]
 				},
 				{
@@ -102,12 +108,32 @@
 						1,
 						2,
 						3,
-						4
+						4,
+						5,
+						6,
+						7,
+						8,
+						9,
+						10
 					]
 				}
 			],
 			"targets" : 
 			[
+				{
+					"directoryIndex" : 2,
+					"id" : "10Pointer::@0379459042231726acf6",
+					"jsonFile" : "target-10Pointer-Debug-eecd6534b00172e3b781.json",
+					"name" : "10Pointer",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 2,
+					"id" : "11UsingPointer::@0379459042231726acf6",
+					"jsonFile" : "target-11UsingPointer-Debug-f23ae904f9dc468c1123.json",
+					"name" : "11UsingPointer",
+					"projectIndex" : 2
+				},
 				{
 					"directoryIndex" : 2,
 					"id" : "1HelloWorld::@0379459042231726acf6",
@@ -141,6 +167,34 @@
 					"id" : "5Sizeof::@0379459042231726acf6",
 					"jsonFile" : "target-5Sizeof-Debug-33894ccc238580590de5.json",
 					"name" : "5Sizeof",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 2,
+					"id" : "6Enum::@0379459042231726acf6",
+					"jsonFile" : "target-6Enum-Debug-0454f6694c324a070bbb.json",
+					"name" : "6Enum",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 2,
+					"id" : "7ReadEnum::@0379459042231726acf6",
+					"jsonFile" : "target-7ReadEnum-Debug-6df15484d0dfd81892b5.json",
+					"name" : "7ReadEnum",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 2,
+					"id" : "8.EnumInSwitch::@0379459042231726acf6",
+					"jsonFile" : "target-8.EnumInSwitch-Debug-6c54051be567d5f7b7c4.json",
+					"name" : "8.EnumInSwitch",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 2,
+					"id" : "9IntegerToEnum::@0379459042231726acf6",
+					"jsonFile" : "target-9IntegerToEnum-Debug-32855fe7f59c196b6c50.json",
+					"name" : "9IntegerToEnum",
 					"projectIndex" : 2
 				},
 				{

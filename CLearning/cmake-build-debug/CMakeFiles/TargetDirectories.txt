@@ -4,10 +4,16 @@ D:/develop/git_repo/GitHub_cy/CLearning/cmake-build-debug/CMakeFiles/rebuild_cac
 D:/develop/git_repo/GitHub_cy/CLearning/cmake-build-debug/learning-test/CMakeFiles/test1.dir
 D:/develop/git_repo/GitHub_cy/CLearning/cmake-build-debug/learning-test/CMakeFiles/edit_cache.dir
 D:/develop/git_repo/GitHub_cy/CLearning/cmake-build-debug/learning-test/CMakeFiles/rebuild_cache.dir
+D:/develop/git_repo/GitHub_cy/CLearning/cmake-build-debug/c-tutorial/CMakeFiles/10Pointer.dir
+D:/develop/git_repo/GitHub_cy/CLearning/cmake-build-debug/c-tutorial/CMakeFiles/11UsingPointer.dir
 D:/develop/git_repo/GitHub_cy/CLearning/cmake-build-debug/c-tutorial/CMakeFiles/1HelloWorld.dir
 D:/develop/git_repo/GitHub_cy/CLearning/cmake-build-debug/c-tutorial/CMakeFiles/2Definition.dir
 D:/develop/git_repo/GitHub_cy/CLearning/cmake-build-debug/c-tutorial/CMakeFiles/3Calculate.dir
 D:/develop/git_repo/GitHub_cy/CLearning/cmake-build-debug/c-tutorial/CMakeFiles/4BitwiseOperation.dir
 D:/develop/git_repo/GitHub_cy/CLearning/cmake-build-debug/c-tutorial/CMakeFiles/5Sizeof.dir
+D:/develop/git_repo/GitHub_cy/CLearning/cmake-build-debug/c-tutorial/CMakeFiles/6Enum.dir
+D:/develop/git_repo/GitHub_cy/CLearning/cmake-build-debug/c-tutorial/CMakeFiles/7ReadEnum.dir
+D:/develop/git_repo/GitHub_cy/CLearning/cmake-build-debug/c-tutorial/CMakeFiles/8.EnumInSwitch.dir
+D:/develop/git_repo/GitHub_cy/CLearning/cmake-build-debug/c-tutorial/CMakeFiles/9IntegerToEnum.dir
 D:/develop/git_repo/GitHub_cy/CLearning/cmake-build-debug/c-tutorial/CMakeFiles/edit_cache.dir
 D:/develop/git_repo/GitHub_cy/CLearning/cmake-build-debug/c-tutorial/CMakeFiles/rebuild_cache.dir
