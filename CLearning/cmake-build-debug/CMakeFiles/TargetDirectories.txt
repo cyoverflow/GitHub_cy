@@ -5,6 +5,8 @@ D:/develop/git_repo/GitHub_cy/CLearning/cmake-build-debug/learning-test/CMakeFil
 D:/develop/git_repo/GitHub_cy/CLearning/cmake-build-debug/learning-test/CMakeFiles/11.5Split-time.dir
 D:/develop/git_repo/GitHub_cy/CLearning/cmake-build-debug/learning-test/CMakeFiles/11.6Find-two-largest.dir
 D:/develop/git_repo/GitHub_cy/CLearning/cmake-build-debug/learning-test/CMakeFiles/11.7Fine-middle.dir
+D:/develop/git_repo/GitHub_cy/CLearning/cmake-build-debug/learning-test/CMakeFiles/12.4Reverse-Msg.dir
+D:/develop/git_repo/GitHub_cy/CLearning/cmake-build-debug/learning-test/CMakeFiles/12.5Palindrome.dir
 D:/develop/git_repo/GitHub_cy/CLearning/cmake-build-debug/learning-test/CMakeFiles/test1.dir
 D:/develop/git_repo/GitHub_cy/CLearning/cmake-build-debug/learning-test/CMakeFiles/edit_cache.dir
 D:/develop/git_repo/GitHub_cy/CLearning/cmake-build-debug/learning-test/CMakeFiles/rebuild_cache.dir

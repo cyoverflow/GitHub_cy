@@ -234,6 +234,72 @@ build learning-test/11.7Fine-middle.exe: C_EXECUTABLE_LINKER__11.2e7Fine-middle_
   TARGET_PDB = 11.7Fine-middle.exe.dbg
 
 # =============================================================================
+# Object build statements for EXECUTABLE target 12.4Reverse-Msg
+
+
+#############################################
+# Order-only phony target for 12.4Reverse-Msg
+
+build cmake_object_order_depends_target_12.4Reverse-Msg: phony || learning-test/CMakeFiles/12.4Reverse-Msg.dir
+
+build learning-test/CMakeFiles/12.4Reverse-Msg.dir/12.4Reverse-Msg.c.obj: C_COMPILER__12.2e4Reverse-Msg_Debug D$:/develop/git_repo/GitHub_cy/CLearning/learning-test/12.4Reverse-Msg.c || cmake_object_order_depends_target_12.4Reverse-Msg
+  DEP_FILE = learning-test\CMakeFiles\12.4Reverse-Msg.dir\12.4Reverse-Msg.c.obj.d
+  FLAGS = -g -std=gnu99
+  OBJECT_DIR = learning-test\CMakeFiles\12.4Reverse-Msg.dir
+  OBJECT_FILE_DIR = learning-test\CMakeFiles\12.4Reverse-Msg.dir
+
+
+# =============================================================================
+# Link build statements for EXECUTABLE target 12.4Reverse-Msg
+
+
+#############################################
+# Link the executable learning-test\12.4Reverse-Msg.exe
+
+build learning-test/12.4Reverse-Msg.exe: C_EXECUTABLE_LINKER__12.2e4Reverse-Msg_Debug learning-test/CMakeFiles/12.4Reverse-Msg.dir/12.4Reverse-Msg.c.obj
+  FLAGS = -g
+  LINK_LIBRARIES = -lkernel32 -luser32 -lgdi32 -lwinspool -lshell32 -lole32 -loleaut32 -luuid -lcomdlg32 -ladvapi32
+  OBJECT_DIR = learning-test\CMakeFiles\12.4Reverse-Msg.dir
+  POST_BUILD = cd .
+  PRE_LINK = cd .
+  TARGET_FILE = learning-test\12.4Reverse-Msg.exe
+  TARGET_IMPLIB = learning-test\lib12.4Reverse-Msg.dll.a
+  TARGET_PDB = 12.4Reverse-Msg.exe.dbg
+
+# =============================================================================
+# Object build statements for EXECUTABLE target 12.5Palindrome
+
+
+#############################################
+# Order-only phony target for 12.5Palindrome
+
+build cmake_object_order_depends_target_12.5Palindrome: phony || learning-test/CMakeFiles/12.5Palindrome.dir
+
+build learning-test/CMakeFiles/12.5Palindrome.dir/12.5Palindrome.c.obj: C_COMPILER__12.2e5Palindrome_Debug D$:/develop/git_repo/GitHub_cy/CLearning/learning-test/12.5Palindrome.c || cmake_object_order_depends_target_12.5Palindrome
+  DEP_FILE = learning-test\CMakeFiles\12.5Palindrome.dir\12.5Palindrome.c.obj.d
+  FLAGS = -g -std=gnu99
+  OBJECT_DIR = learning-test\CMakeFiles\12.5Palindrome.dir
+  OBJECT_FILE_DIR = learning-test\CMakeFiles\12.5Palindrome.dir
+
+
+# =============================================================================
+# Link build statements for EXECUTABLE target 12.5Palindrome
+
+
+#############################################
+# Link the executable learning-test\12.5Palindrome.exe
+
+build learning-test/12.5Palindrome.exe: C_EXECUTABLE_LINKER__12.2e5Palindrome_Debug learning-test/CMakeFiles/12.5Palindrome.dir/12.5Palindrome.c.obj
+  FLAGS = -g
+  LINK_LIBRARIES = -lkernel32 -luser32 -lgdi32 -lwinspool -lshell32 -lole32 -loleaut32 -luuid -lcomdlg32 -ladvapi32
+  OBJECT_DIR = learning-test\CMakeFiles\12.5Palindrome.dir
+  POST_BUILD = cd .
+  PRE_LINK = cd .
+  TARGET_FILE = learning-test\12.5Palindrome.exe
+  TARGET_IMPLIB = learning-test\lib12.5Palindrome.dll.a
+  TARGET_PDB = 12.5Palindrome.exe.dbg
+
+# =============================================================================
 # Object build statements for EXECUTABLE target test1
 
 
@@ -707,6 +773,14 @@ build 11UsingPointer: phony c-tutorial/11UsingPointer.exe
 
 build 11UsingPointer.exe: phony c-tutorial/11UsingPointer.exe
 
+build 12.4Reverse-Msg: phony learning-test/12.4Reverse-Msg.exe
+
+build 12.4Reverse-Msg.exe: phony learning-test/12.4Reverse-Msg.exe
+
+build 12.5Palindrome: phony learning-test/12.5Palindrome.exe
+
+build 12.5Palindrome.exe: phony learning-test/12.5Palindrome.exe
+
 build 1HelloWorld: phony c-tutorial/1HelloWorld.exe
 
 build 1HelloWorld.exe: phony c-tutorial/1HelloWorld.exe
@@ -771,7 +845,7 @@ build c-tutorial/all: phony c-tutorial/10Pointer.exe c-tutorial/11UsingPointer.e
 #############################################
 # Folder: D:/develop/git_repo/GitHub_cy/CLearning/cmake-build-debug/learning-test
 
-build learning-test/all: phony learning-test/11.4Swap.exe learning-test/11.5Split-time.exe learning-test/11.6Find-two-largest.exe learning-test/11.7Fine-middle.exe learning-test/test1.exe
+build learning-test/all: phony learning-test/11.4Swap.exe learning-test/11.5Split-time.exe learning-test/11.6Find-two-largest.exe learning-test/11.7Fine-middle.exe learning-test/12.4Reverse-Msg.exe learning-test/12.5Palindrome.exe learning-test/test1.exe
 
 # =============================================================================
 # Built-in targets

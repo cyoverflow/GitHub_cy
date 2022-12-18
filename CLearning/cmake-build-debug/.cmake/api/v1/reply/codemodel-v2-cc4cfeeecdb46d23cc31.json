@@ -20,7 +20,7 @@
 					"source" : ".",
 					"targetIndexes" : 
 					[
-						15
+						17
 					]
 				},
 				{
@@ -39,7 +39,9 @@
 						2,
 						3,
 						4,
-						16
+						6,
+						7,
+						18
 					]
 				},
 				{
@@ -56,15 +58,15 @@
 					[
 						0,
 						5,
-						6,
-						7,
 						8,
 						9,
 						10,
 						11,
 						12,
 						13,
-						14
+						14,
+						15,
+						16
 					]
 				}
 			],
@@ -84,7 +86,7 @@
 					"name" : "CLearning",
 					"targetIndexes" : 
 					[
-						15
+						17
 					]
 				},
 				{
@@ -100,7 +102,9 @@
 						2,
 						3,
 						4,
-						16
+						6,
+						7,
+						18
 					]
 				},
 				{
@@ -114,15 +118,15 @@
 					[
 						0,
 						5,
-						6,
-						7,
 						8,
 						9,
 						10,
 						11,
 						12,
 						13,
-						14
+						14,
+						15,
+						16
 					]
 				}
 			],
@@ -169,6 +173,20 @@
 					"jsonFile" : "target-11UsingPointer-Debug-f23ae904f9dc468c1123.json",
 					"name" : "11UsingPointer",
 					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 1,
+					"id" : "12.4Reverse-Msg::@f7d684093f1d08503e23",
+					"jsonFile" : "target-12.4Reverse-Msg-Debug-90ebb11989162d74f2eb.json",
+					"name" : "12.4Reverse-Msg",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 1,
+					"id" : "12.5Palindrome::@f7d684093f1d08503e23",
+					"jsonFile" : "target-12.5Palindrome-Debug-80b10b953cba86e2729a.json",
+					"name" : "12.5Palindrome",
+					"projectIndex" : 1
 				},
 				{
 					"directoryIndex" : 2,
