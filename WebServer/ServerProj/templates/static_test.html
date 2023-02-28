@@ -1,0 +1,11 @@
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <title>静态文件测试</title>
+    </head>
+    <body>
+        {% load static %}
+        {{ name }}
+        <img decoding="async" src="{% static 'images/image1.png' %}" alt="image-first">
+    </body>
+</html>

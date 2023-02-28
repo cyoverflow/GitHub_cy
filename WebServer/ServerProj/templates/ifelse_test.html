@@ -1,0 +1,18 @@
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <title>过滤器:ifelse标签测试页面</title>
+    </head>
+    <body>
+        <!-- 大括号和百分号之间不能有空格 -->
+        {%if grade >= 90 and grade <= 100 %}
+        <h1>优秀</h1>
+        {% elif grade >= 60 and grade < 90 %}
+        <h1>及格</h1>
+        {% elif grade < 60 %}
+        <h1>不及格</h1>
+        {% else %}
+        <h1>成绩值错误</h1>
+        {% endif %}
+    </body>
+</html>

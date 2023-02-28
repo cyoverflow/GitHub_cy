@@ -1,0 +1,12 @@
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <title>过滤器:default测试页面</title>
+    </head>
+    <body>
+        <h1>
+            <!-- 取出name字段,如果为false,则默认为"用户名" -->
+            {{ name | default:"用户名" }}
+        </h1>
+    </body>
+</html>

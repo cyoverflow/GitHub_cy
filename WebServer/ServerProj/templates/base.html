@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <title>
+            {% block title %}
+            默认标签名
+            {% endblock %}
+        </title>
+    </head>
+    <body>
+        <h1>
+            Django测试
+        </h1>
+        {% block body%}
+        <p>
+            original
+        </p>
+        {% endblock %}
+    </body>
+</html>
