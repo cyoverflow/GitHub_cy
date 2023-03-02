@@ -962,6 +962,1374 @@ POST：![image-20230228222517176](assets/image-20230228222517176.png)
 
 任何人都可以查看资源；但是新增（CREATE）、更新（PUT）、删除（DELETE）等修改操作就只允许管理员执行。
 
+## 8.文章关联用户
+
+### 将字段设置为只读
+
+上一章中我们已经将用户以外键的形式关联到文章中了，但是由于 `author` 字段是允许为空的，所以理论上还是可以发表没有作者的文章：
+
+ ![image-20230302153038838](assets/image-20230302153038838.png)
+
+虽然你可以直接指定作者的 `id` 值来对外键赋值，但是这种方法不但没有必要，甚至还可以伪造一个错误的用户 `id` ：
+
+ ![image-20230302153246468](assets/image-20230302153246468.png)
+
+解决方法如下：既然请求体中已经包含用户信息了，那就可以从 `Request` 中提取用户信息，并把额外的用户信息注入到已有的数据中。
+
+修改视图：
+
+```python
+# article/views.py
+
+class ArticleList(generics.ListCreateAPIView):
+    ...
+    # 新增代码
+    def perform_create(self, serializer):
+        serializer.save(author=self.request.user)
+```
+
+- 新增的这个 `perform_create()` 从父类 `ListCreateAPIView` 继承而来，它在序列化数据真正保存之前调用，因此可以在这里添加额外的数据（即用户对象）。
+- `serializer` 参数是 `ArticleListSerializer` 序列化器实例，并且已经携带着验证后的数据。它的 `save()` 方法可以接收关键字参数作为额外的需要保存的数据。
+
+在命令行重新测试：
+
+ ![image-20230302154050337](assets/image-20230302154050337.png)
+
+很好，但是用户依然可以手动传入一个错误的 `author`：
+
+ ![image-20230302154529003](assets/image-20230302154529003.png)
+
+好在序列化器允许你指定只读字段。修改 `ArticleListSerializer`：
+
+```python
+# article/serializers.py
+
+...
+
+class ArticleListSerializer(serializers.ModelSerializer):
+    class Meta:
+        ...
+        # 新增代码
+        read_only_fields = ['author']
+```
+
+此时在接收 POST 请求时，序列化器就不再理会请求中附带的 `author` 数据了：
+
+ ![image-20230302154807433](assets/image-20230302154807433.png)
+
+### 显示用户信息
+
+虽然作者外键已经出现在序列化数据中了，但是仅仅显示作者的 id 不太有用，我们更想要的是比如名字、性别等更具体的结构化信息。所以就需要将序列化数据**嵌套**起来。
+
+新创建一个用户 app：
+
+```
+(venv) [worksplace] D:\develop\git_repo\GitHub_cy\Cymoonlight\blog
+> manage.py startapp user_info
+```
+
+并将新 app 添加到注册列表：
+
+```python
+# blog/settings.py
+
+INSTALLED_APPS = [
+    ...
+    'user_info',
+]
+```
+
+新建 `user_info/serializers.py` 文件，写入：
+
+```python
+# user_info/serializers.py
+
+from django.contrib.auth.models import User
+from rest_framework import serializers
+
+class UserDescSerializer(serializers.ModelSerializer):
+    """于文章列表中引用的嵌套序列化器"""
+
+    class Meta:
+        model = User
+        fields = [
+            'id',
+            'username',
+            'last_login',
+            'date_joined'
+        ]
+```
+
+序列化类我们已经比较熟悉了，这个序列化器专门用在文章列表中，展示用户的基本信息。
+
+最后修改文章列表的序列化器，把它们嵌套到一起：
+
+```python
+# article/serializers.py
+
+from user_info.serializers import UserDescSerializer
+
+class ArticleListSerializer(serializers.ModelSerializer):
+    # read_only 参数设置为只读
+    author = UserDescSerializer(read_only=True)
+
+    class Meta:
+        model = Article
+        fields = [
+            'id',
+            'title',
+            'created',
+            'author',
+        ]
+        # 嵌套序列化器已经设置了只读，所以这个就不要了
+        # read_only_fields = ['author']
+```
+
+这就 OK 了，在命令行测试一下：
+
+ ![image-20230302155855167](assets/image-20230302155855167.png)
+
+## 9.超链接与分页
+
+### 增加url字段
+
+目前我们的文章列表是这样的：
+
+```
+...
+{
+        "id": 7,
+        "title": "post with user 2",
+        "created": "2023-03-02T07:39:58.123365Z",
+        "author": {
+            "id": 1,
+            "username": "cy99",
+            "last_login": "2023-02-27T14:21:15.057700Z",
+            "date_joined": "2023-02-27T14:12:49.451904Z"
+        }
+    },
+    {
+        "id": 8,
+        "title": "post for readonly author",
+        "created": "2023-03-02T07:47:50.480534Z",
+        "author": {
+            "id": 1,
+            "username": "cy99",
+            "last_login": "2023-02-27T14:21:15.057700Z",
+            "date_joined": "2023-02-27T14:12:49.451904Z"
+        }
+    }
+]
+```
+
+通过数据看不出每篇文章的实际 url 地址。虽然包含了文章的 id 号，但 id 和 url 不一定总是关联的。最好 json 数据中直接提供**超链接**到每篇文章的 url，以后前端用起来就方便了。
+
+实现超链接可以用 DRF 框架提供的 `HyperlinkedIdentityField` ：
+
+```python
+# article/serializers.py
+
+...
+
+class ArticleListSerializer(serializers.ModelSerializer):
+    # 新增字段，添加超链接
+    url = serializers.HyperlinkedIdentityField(view_name="article:detail")
+    ...
+
+    class Meta:
+        model = Article
+        fields = [
+            # 有了 url 之后，id 就不需要了
+            'url',
+            # 'id',
+            ...
+        ]
+```
+
+- `HyperlinkedIdentityField` 是 DRF 框架提供的超链接字段，只需要你在参数里提供路由的名称，它就自动帮你完成动态地址的映射。
+- `view_name` 是路由的名称，也就是我们在 `path(... name='xxx')` 里的那个 name
+- 别忘了在序列化器的 `fields` 列表里加上 `url`
+
+在命令行中重新发个请求：
+
+ ![image-20230302161342260](assets/image-20230302161342260.png)
+
+这样就人性化多了。
+
+> DRF 框架还提供了一个专门的超链接序列化器 `HyperlinkedModelSerializer`，大体上跟普通序列化器差不多，不同的是默认以超链接来表示关系字段。详情见[官方文档](https://www.django-rest-framework.org/api-guide/serializers/#hyperlinkedmodelserializer)。
+
+### 分页
+
+DRF 框架继承了 Django 方便易用的传统，分页这种常见功能提供了默认实现。
+
+你只需要在 `settings.py` 里配置一下就行了：
+
+```
+# blog/settings.py
+
+REST_FRAMEWORK = {
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'PAGE_SIZE': 2
+}
+```
+
+为了测试把每页的文章数量设置到 2。
+
+在命令行发送请求：
+
+ ![image-20230302161943391](assets/image-20230302161943391.png)
+
+DRF 非常聪明的封装了分页相关的元信息：
+
+- count：总页数
+- next：下一页的 url
+- previous：上一页的 url
+
+实际的数据被放到 `results` 列表中。
+
+试着获取第二页的数据：
+
+ ![image-20230302162206665](assets/image-20230302162206665.png)
+
+超链接和分页就完成了。代码量非常少，原因就是 DRF 把常用功能都内置了，直接调用就行，很适合快速开发。
+
+## 10.视图集
+
+通过前几章的折腾，我们已经把文章增删改查都完成了。经过合理运用类和继承的理念，代码已经相当精简了。但是， DRF 框架提供了更高层的抽象，可以让代码量进一步的减少。
+
+来看看**视图集**的威力吧。
+
+### 重构代码
+
+大部分对接口的操作，都是在增删改查的基础上衍生出来的。既然这样，**视图集**就将这些通用操作集成在一起了。
+
+试下用视图集重构代码。
+
+首先将之前写的与文章有关的**序列化器**都注释掉，新增一个提供给视图集的新序列化器：
+
+```python
+# article/serializers.py
+
+...
+
+class ArticleSerializer(serializers.HyperlinkedModelSerializer):
+    author = UserDescSerializer(read_only=True)
+
+    class Meta:
+        model = Article
+        fields = '__all__'
+
+...
+```
+
+序列化器继承的 `HyperlinkedModelSerializer` 基本上与之前用的 `ModelSerializer` 差不多，区别是它自动提供了外键字段的超链接，并且默认不包含模型对象的 id 字段。
+
+接着把之前写的文章**视图**也全注释掉，并新增代码：
+
+```python
+# article/views.py
+
+...
+from article.models import Article
+from article.permissions import IsAdminUserOrReadOnly
+from rest_framework import viewsets
+from article.serializers import ArticleSerializer
+
+class ArticleViewSet(viewsets.ModelViewSet):
+    queryset = Article.objects.all()
+    serializer_class = ArticleSerializer
+    permission_classes = [IsAdminUserOrReadOnly]
+
+    def perform_create(self, serializer):
+        serializer.save(author=self.request.user)
+```
+
+视图集类把前面章节写的列表、详情等逻辑都集成到一起，并且提供了默认的增删改查的实现。
+
+> 这些基础逻辑都在父类 `ModelViewSet` 里封装实现了，有兴趣可耐心研究源码。
+
+`perform_create()` 跟之前一样，在创建文章前，提供了视图集无法自行推断的用户外键字段。
+
+由于使用了视图集，我们甚至连**路由**都不用自己设计了，使用框架提供的 `Router` 类就可以自动处理视图和 url 的连接。
+
+修改**项目根路由**：
+
+```python
+# blog/urls.py
+
+...
+
+from rest_framework.routers import DefaultRouter
+from article import views
+
+router = DefaultRouter()
+router.register(r'article', views.ArticleViewSet)
+
+urlpatterns = [
+    ...
+    
+    # drf 自动注册路由
+    path('api/', include(router.urls)),
+
+    # article/urls.py 可以全注释掉，不需要了
+    # path('api/article/', include('article.urls', namespace='article')),
+
+]
+```
+
+最后为了让分页更准确，给模型类规定好查询排序：
+
+```python
+# article/models.py
+
+...
+
+# 已经有的博客文章 model
+class Article(models.Model):
+    ...
+
+    class Meta:
+        ordering = ['-created']
+```
+
+完成了。
+
+发送命令，进行测试：
+
+ ![image-20230302164228719](assets/image-20230302164228719.png)
+
+`Router` 类送给我们一个接口导航！
+
+顺着导航里给的链接再试试：
+
+ ![image-20230302164328445](assets/image-20230302164328445.png)
+
+正确的显示了列表。再顺着列表提供的详情页点进去也肯定是没问题的。权限控制也与之前的完全一样。
+
+就这么几行代码，就完成了一整套的接口操作！
+
+**视图集**最大程度地减少需要编写的代码量，并允许你专注于 API 提供的交互和表示形式，而不是 URL 的细节。但并不意味着用它总是比构建单独的视图更好。
+
+> 原因就是它的抽象程度太高了。如果你对 DRF 框架的理解不深并且需要做某种定制化业务，可能让你一时间无从下手。
+
+在**精简**和**可读**之间，你应该根据实际情况进行取舍
+
+### 覆写序列化器
+
+前几章用普通视图分别实现了列表和详情接口，并且不同的接口对应了不同的序列化器。
+
+虽然视图集默认只提供一个序列化器，但是通过覆写 `get_serializer_class()` 方法可以根据条件而访问不同的序列化器：
+
+```python
+class ArticleViewSet(viewsets.ModelViewSet):
+    ...
+
+    def get_serializer_class(self):
+        if self.action == 'list':
+            return SomeSerializer
+        else:
+            return AnotherSerializer
+```
+
+## 11.过滤文章
+
+有些时候用户需要某个特定范围的文章（比如搜索功能），这时候后端需要把返回的数据进行过滤。
+
+最简单的过滤方法就是修改视图集中的 `queryset` 属性了：
+
+```
+class ArticleViewSet(viewsets.ModelViewSet):
+    queryset = Article.objects.filter(author__username='Obama')
+    ...
+```
+
+但是这样会导致原本正常的列表也都过滤了，太傻了。因此需要寻找更聪明的办法。
+
+### 参数过滤
+
+假设有如下带有参数的 GET 请求：
+
+```
+http://127.0.0.1:8000/api/article/?username=sleepyjoe
+```
+
+我们可以覆写 `get_queryset()` 方法来实现过滤：
+
+```python
+class ArticleViewSet(viewsets.ModelViewSet):
+    queryset = Article.objects.all()
+    ...
+    
+    def get_queryset(self):
+        queryset = self.queryset
+        username = self.request.query_params.get('username', None)
+
+        if username is not None:
+            queryset = queryset.filter(author__username=username)
+
+        return queryset
+```
+
+这样就实现了过滤。但是如此常用的功能，必然已经有现成的轮子了。在博客项目中使用轮子可以更快更好的完成任务，所以接下来就来看看通用的过滤功能。
+
+> 注意上面那个请求尾部的斜杠。虽然在浏览器中这个斜杠是可选的，但是在命令行中发送请求是必须要携带的（DRF 3.11.0）。
+
+### 通用过滤
+
+还记得刚安装 DRF 时顺便安装的 `django-filter` 吗，这就是用于过滤的轮子，现在派上用场了。
+
+要将它作为默认的过滤引擎后端，写到配置文件中：
+
+```python
+# blog/settings.py
+
+...
+REST_FRAMEWORK = {
+    'DEFAULT_FILTER_BACKENDS': ['django_filters.rest_framework.DjangoFilterBackend']
+    ...
+}
+```
+
+你也可以将其单独配置在特定的视图中：
+
+```python
+# article/views.py
+from django_filters.rest_framework import DjangoFilterBackend
+
+
+class ArticleViewSet(viewsets.ModelViewSet):
+    filter_backends = [DjangoFilterBackend]
+    filterset_fields = ['author__username', 'title']
+
+    ...
+```
+
+最后还要在setting.py中设置
+
+```python
+# settings.py
+INSTALLED_APPS = [
+    ...
+    'django_filters',
+]
+```
+
+如果要实现单纯的完全匹配，上面这样写就可以了，请求参数可以单个字段也可以联合：
+
+ ![image-20230302184002434](assets/image-20230302184002434.png)
+
+如果要实现更常用的**模糊匹配**，就可以使用 `SearchFilter` 做搜索后端：
+
+```python
+# article/views.py
+
+...
+from rest_framework import filters
+
+class ArticleViewSet(viewsets.ModelViewSet):
+    queryset = Article.objects.all()
+    serializer_class = ArticleSerializer
+    permission_classes = [IsAdminUserOrReadOnly]
+
+    filter_backends = [filters.SearchFilter]
+    search_fields = ['title']
+    
+    # 这个属性不需要了
+    # filterset_fields = ['author__username', 'title']
+```
+
+**需要注意：**改用模糊匹配后的url参数就只有一个**"search"**，只对一个设置的参数title字段进行搜索
+
+ ![image-20230302184352513](assets/image-20230302184352513.png)
+
+## 12.文章分类
+
+博客文章通常需要分类，方便用户快速识别文章的类型，或者进行某种关联操作。
+
+### 增加分类的模型
+
+首先在 `article/models.py` 里增加一个分类的模型，并且将其和博文成为一对多的外键：
+
+```
+# article/models.py
+
+...
+
+class Category(models.Model):
+    """文章分类"""
+    title = models.CharField(max_length=100)
+    created = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        ordering = ['-created']
+
+    def __str__(self):
+        return self.title
+
+
+class Article(models.Model):
+    # 分类
+    category = models.ForeignKey(
+        Category,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='articles'
+    )
+    ...
+```
+
+字段很简单，大体上就 `title` 字段会用到。
+
+别忘了数据迁移：
+
+```sh
+(venv) > python manage.py makemigrations
+(venv) > python manage.py migrate
+```
+
+> 教程把分类的 model 放到 article app中了。实际项目应根据情况考虑是否需要另起一个单独的分类 app。
+
+### 视图与路由
+
+视图还是用视图集的形式：
+
+```python
+# article/views.py
+
+...
+from article.models import Category
+from article.serializers import CategorySerializer
+
+class CategoryViewSet(viewsets.ModelViewSet):
+    """分类视图集"""
+    queryset = Category.objects.all()
+    serializer_class = CategorySerializer
+    permission_classes = [IsAdminUserOrReadOnly]
+```
+
+与博文的视图集完全一样，没有新的知识。`CategorySerializer` 还没写，不慌等一会来搞定它。
+
+将路由也注册好：
+
+```python
+# blog/urls.py
+
+...
+from rest_framework.routers import DefaultRouter
+from article import views
+
+...
+# 其他都不改，就增加这行
+router.register(r'category', views.CategoryViewSet)
+
+urlpatterns = [
+    ...
+]
+```
+
+### 序列化器
+
+接下来把 `article/serializers.py` 改成下面这样：
+
+```python
+# article/serializers.py
+
+from rest_framework import serializers
+from article.models import Article
+from user_info.serializers import UserDescSerializer
+from article.models import Category
+
+
+class CategorySerializer(serializers.ModelSerializer):
+    """分类的序列化器"""
+    url = serializers.HyperlinkedIdentityField(view_name='category-detail')
+
+    class Meta:
+        model = Category
+        fields = '__all__'
+        read_only_fields = ['created']
+
+        
+class ArticleSerializer(serializers.HyperlinkedModelSerializer):
+    """博文序列化器"""
+    author = UserDescSerializer(read_only=True)
+    # category 的嵌套序列化字段
+    category = CategorySerializer(read_only=True)
+    # category 的 id 字段，用于创建/更新 category 外键
+    category_id = serializers.IntegerField(write_only=True, allow_null=True, required=False)
+
+    # category_id 字段的验证器
+    def validate_category_id(self, value):
+        if not Category.objects.filter(id=value).exists() and value is not None:
+            raise serializers.ValidationError("Category with id {} not exists.".format(value))
+        return value
+
+    class Meta:
+        model = Article
+        fields = '__all__'
+```
+
+稍微开始有点复杂了，让我们来拆分解读一下代码。
+
+先看 `CategorySerializer` ：
+
+- `HyperlinkedIdentityField` 前面章节有讲过，作用是将路由间的表示转换为超链接。`view_name` 参数是路由名，你必须显示指定。 `category-detail` 是自动注册路由时，`Router` 默认帮你设置的详情页面的名称，类似的还有 `category-list` 等，更多规则参考[文档](https://www.django-rest-framework.org/api-guide/routers/#defaultrouter)。
+- 创建日期不需要后期修改，所以设置为 `read_only_fields`。
+
+再来看 `ArticleSerializer`：
+
+- 由于我们希望文章接口不仅仅只返回分类的 id 而已，所以需要显式指定 `category` ，将其变成一个嵌套数据，与之前的 `author` 类似。
+- DRF 框架原生没有实现**可写的嵌套数据**（因为其操作逻辑没有统一的标准），那我想**创建/更新**文章和分类的外键关系怎么办？一种方法是自己去实现序列化器的 `create()/update()` 方法；另一种就是 DRF 框架提供的修改外键的快捷方式，即显式指定 `category_id` 字段，则此字段会自动链接到 `category` 外键，以便你更新外键关系。
+- 再看 `category_id` 内部。`write_only` 表示此字段仅需要可写；`allow_null` 表示允许将其设置为空；`required` 表示在**创建/更新**时可以不设置此字段。
+
+经过以上设置，实际上序列化器已经可以正常工作了。但有个小问题是如果用户提交了一个不存在的分类外键，后端会返回外键数据不存在的 500 错误，不太友好。解决方法就是对数据预先进行**验证**。
+
+验证方式又有如下几种：
+
+- 覆写序列化器的 `.validate(...)` 方法。这是个全局的验证器，其接收的唯一参数是所有字段值的字典。当你需要同时对多个字段进行验证时，这是个很好的选择。
+- 另一种就是教程用到的，即 `.validate_{field_name}(...)` 方法，它会只验证某个特定的字段，比如 `category_id` 。
+
+`validate_category_id` 检查了两样东西：
+
+- 数据库中是否包含了对应 id 值的数据。
+- 传入值是否为 None。这是为了能够将已有的外键置空。
+
+如果没通过上述检查，后端就抛出一个 400 错误（代替之前的 500 错误），并返回错误产生的提示，这就更友好一些了。
+
+这就基本完成了对分类的开发。接下来就是实际的测试了。
+
+### 测试
+
+打开命令行，首先创建分类：
+
+ ![image-20230302195308496](assets/image-20230302195308496.png)
+
+更新已有的分类：
+
+ ![image-20230302195423145](assets/image-20230302195423145.png)
+
+创建文章时指定分类：
+
+ ![image-20230302195631586](assets/image-20230302195631586.png)
+
+把已有的分类置空：
+
+ ![image-20230302200452627](assets/image-20230302200452627.png)
+
+在更新资源时用到了 `POST` 、`PUT` 、 `PATCH` 三种请求方法，它们的区别是啥？
+
+- `POST` ：创建新的资源。
+- `PUT` ： 整体更新特定资源，默认情况下你需要完整给出所有必须的字段。
+- `PATCH`： 部分更新特定资源，仅需要给出需要更新的字段，未给出的字段默认不更改。
+
+### 完善分类详情
+
+上面写的分类接口中，我希望分类的**列表页面**不显示其链接的文章以保持数据清爽，但是详情页面则展示出链接的所有文章，方便接口的使用。因此就需要同一个视图集用到两个不同的序列化器了，即前面章节讲的覆写 `get_serializer_class()` 。
+
+修改序列化器：
+
+```python
+# article/serializers.py
+
+...
+
+class ArticleCategoryDetailSerializer(serializers.ModelSerializer):
+    """给分类详情的嵌套序列化器"""
+    url = serializers.HyperlinkedIdentityField(view_name='article-detail')
+
+    class Meta:
+        model = Article
+        fields = [
+            'url',
+            'title',
+        ]
+
+
+class CategoryDetailSerializer(serializers.ModelSerializer):
+    """分类详情"""
+    articles = ArticleCategoryDetailSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = Category
+        fields = [
+            'id',
+            'title',
+            'created',
+            'articles',
+        ]
+```
+
+然后修改视图：
+
+```python
+# article.views.py
+
+...
+from article.serializers import CategorySerializer, CategoryDetailSerializer
+
+class CategoryViewSet(viewsets.ModelViewSet):
+    """分类视图集"""
+    ...
+    def get_serializer_class(self):
+        if self.action == 'list':
+            return CategorySerializer
+        else:
+            return CategoryDetailSerializer
+```
+
+也就是说：
+
+* 通过GET http://127.0.0.1:8000/api/category/时依然会显示分类的url字段
+* 通过GET http://127.0.0.1:8000/api/category/1/查看某个指定分类的信息时不会显示url字段，且增加显示该分类下的文章信息
+
+## 13.文章标签
+
+一篇文章通常还有**标签**功能，作为分类的补充。
+
+### 模型视图
+
+老规矩，首先把**标签**的 model 建立好：
+
+```python
+# article/models.py
+
+...
+
+class Tag(models.Model):
+    """文章标签"""
+    text = models.CharField(max_length=30)
+
+    class Meta:
+        ordering = ['-id']
+
+    def __str__(self):
+        return self.text
+
+...
+
+class Article(models.Model):
+    ...
+    # 标签
+    tags = models.ManyToManyField(
+        Tag,
+        blank=True,
+        related_name='articles'
+    )
+```
+
+一篇文章可以有多个标签，一个标签可以对应多个文章，因此是**多对多**关系。
+
+接着把视图集也写好：
+
+```python
+# article/views.py
+
+...
+from article.models import Tag
+from article.serializers import TagSerializer
+
+class TagViewSet(viewsets.ModelViewSet):
+    queryset = Tag.objects.all()
+    serializer_class = TagSerializer
+    permission_classes = [IsAdminUserOrReadOnly]
+```
+
+还是那三板斧，没有新内容。
+
+最后的外围工作，就是注册路由：
+
+```python
+# drf_vue_blog/urls.py
+
+...
+router.register(r'tag', views.TagViewSet)
+...
+```
+
+### 序列化器
+
+接下来就是最重要的 `TagSerializer` ：
+
+```python
+# article/serializers.py
+
+...
+from article.models import Tag
+
+# 新增的序列化器
+class TagSerializer(serializers.HyperlinkedModelSerializer):
+    """标签序列化器"""
+    class Meta:
+        model = Tag
+        fields = '__all__'
+
+# 修改已有的文章序列化器
+class ArticleSerializer(serializers.HyperlinkedModelSerializer):
+    ...
+    
+    # tag 字段
+    tags = serializers.SlugRelatedField(
+        queryset=Tag.objects.all(),
+        many=True,
+        required=False,
+        slug_field='text'
+    )
+
+    ...
+```
+
+通过前面章节已经知道，默认的嵌套序列化器只显示外链的 id，需要改得更友好一些。但似乎又没必要改为超链接或者字段嵌套，因为标签就 `text` 字段有用。因此就用 `SlugRelatedField` 直接显示其 `text` 字段的内容就足够了。
+
+让我们给已有的文章新增一个叫 `python` 的标签试试：
+
+ ![image-20230302204624904](assets/image-20230302204624904.png)
+
+修改失败了，原因是 `python` 标签不存在。多对多关系，DRF 默认你必须先得有这个外键对象，才能指定其关系。虽然也合情合理，但我们更希望在创建、更新文章时，程序会**自动检查**数据库里是否存在当前标签。如果存在则指向它，如果不存在则创建一个并指向它。
+
+要实现这个效果，你可能想到覆写 `.validate_{field_name}()` 或者 `.validate()` 还或者 `.create()/.update()` 方法。但是很遗憾，它们都是不行的。
+
+原因是 DRF 执行默认的字段有效性检查比上述的方法都早，程序还执行不到上述的方法，框架就已经抛出错误了。
+
+正确的解法是覆写 `to_internal_value()` 方法：
+
+```python
+# article/serializers.py
+
+...
+
+class ArticleSerializer(serializers.HyperlinkedModelSerializer):
+    ...
+    # 覆写方法，如果输入的标签不存在则创建它
+    def to_internal_value(self, data):
+        tags_data = data.get('tags')
+
+        if isinstance(tags_data, list):
+            for text in tags_data:
+                if not Tag.objects.filter(text=text).exists():
+                    Tag.objects.create(text=text)
+
+        return super().to_internal_value(data)
+```
+
+`to_internal_value()` 方法原本作用是将请求中的原始 Json 数据转化为 Python 表示形式（期间还会对字段有效性做初步检查）。它的执行时间比默认验证器的字段检查更早，因此有机会在此方法中将需要的数据创建好，然后等待检查的降临。`isinstance()` 确定标签数据是列表，才会循环并创建新数据。
+
+再重新请求试试：
+
+ ![image-20230302205731921](assets/image-20230302205731921.png)
+
+这次成功了。可以看到同时赋值多个标签也是可以的，置空也是可以的（给个空列表）。
+
+除此之外，因为标签仅有 `text` 字段是有用的，两个 `id` 不同但是 `text` 相同的标签没有任何意义。更重要的是，`SlugRelatedField` 是不允许有重复的 `slug_field` 。因此还需要覆写 `TagSerializer` 的 `create()/update()` 方法：
+
+```python
+# article/serializers.py
+
+...
+
+class TagSerializer(serializers.HyperlinkedModelSerializer):
+    """标签序列化器"""
+
+    def check_tag_obj_exists(self, validated_data):
+        text = validated_data.get('text')
+        if Tag.objects.filter(text=text).exists():
+            raise serializers.ValidationError('Tag with text {} exists.'.format(text))
+
+    def create(self, validated_data):
+        self.check_tag_obj_exists(validated_data)
+        return super().create(validated_data)
+
+    def update(self, instance, validated_data):
+        self.check_tag_obj_exists(validated_data)
+        return super().update(instance, validated_data)
+    
+    ...
+```
+
+这样就防止了重复 `text` 的标签对象出现。
+
+这两个序列化器的完整形态是下面这样子的：
+
+```python
+# article/serializers.py
+
+class TagSerializer(serializers.HyperlinkedModelSerializer):
+    """标签序列化器"""
+
+    def check_tag_obj_exists(self, validated_data):
+        text = validated_data.get('text')
+        if Tag.objects.filter(text=text).exists():
+            raise serializers.ValidationError('Tag with text {} exists.'.format(text))
+
+    def create(self, validated_data):
+        self.check_tag_obj_exists(validated_data)
+        return super().create(validated_data)
+
+    def update(self, instance, validated_data):
+        self.check_tag_obj_exists(validated_data)
+        return super().update(instance, validated_data)
+
+    class Meta:
+        model = Tag
+        fields = '__all__'
+
+
+class ArticleSerializer(serializers.HyperlinkedModelSerializer):
+    """博文序列化器"""
+    author = UserDescSerializer(read_only=True)
+    # category 的嵌套序列化字段
+    category = CategorySerializer(read_only=True)
+    # category 的 id 字段，用于创建/更新 category 外键
+    category_id = serializers.IntegerField(write_only=True, allow_null=True, required=False)
+    # tag 字段
+    tags = serializers.SlugRelatedField(
+        queryset=Tag.objects.all(),
+        many=True,
+        required=False,
+        slug_field='text'
+    )
+
+    # 覆写方法，如果输入的标签不存在则创建它
+    def to_internal_value(self, data):
+        tags_data = data.get('tags')
+
+        if isinstance(tags_data, list):
+            for text in tags_data:
+                if not Tag.objects.filter(text=text).exists():
+                    Tag.objects.create(text=text)
+
+        return super().to_internal_value(data)
+
+    # category_id 字段的验证器
+    def validate_category_id(self, value):
+        # 数据存在且传入值不等于None
+        if not Category.objects.filter(id=value).exists() and value != None:
+            raise serializers.ValidationError("Category with id {} not exists.".format(value))
+
+        return value
+
+    class Meta:
+        model = Article
+        fields = '__all__'
+```
+
+## 14.Markdown正文
+
+博客文章需要排版，否则难以凸显标题、正文、注释等内容之间的区别。作为博客写手来说，比较流行且好用的排版是采用 Markdown 语法。
+
+严格来说， Markdown 是一种排版标注规则。它将两个星号包裹的文字标注为重要文本（通常也就是粗体字），比如原始文本中的 `**Money**` ，在 Markdown 语法中应该被”渲染“为粗体，也就是 **Money** 。类似的还有斜体、代码块、表格、公式等注释，就请读者自行了解了。
+
+> [关于 Markdown](https://www.dusaiphoto.com/article/20/) 的简单介绍。
+
+”渲染“ Markdown 也就是把原始文本中的注释转化为前端中真正被用户看到的 HTML 排版文字。渲染过程可以在前端也可以在后端，本文将使用后端渲染，以便你理解 DRF 的相关知识。
+
+### 模型和视图
+
+为了将博文的 Markdown 正文渲染为 html 标签，首先给文章模型添加一个 `get_md()` 方法：
+
+```python
+# article/models.py
+
+from markdown import Markdown
+...
+
+class Article(models.Model):
+    ...
+    
+    # 新增方法，将 body 转换为带 html 标签的正文
+    def get_md(self):
+        md = Markdown(
+            extensions=[
+                'markdown.extensions.extra',
+                'markdown.extensions.codehilite',
+                'markdown.extensions.toc',
+            ]
+        )
+        md_body = md.convert(self.body)
+        # toc 是渲染后的目录
+        return md_body, md.toc
+```
+
+方法返回了包含了两个元素的元组，分别为已渲染为 html 的**正文**和**目录**。
+
+这些渲染后的数据，在文章**详情接口**是需要的，但是在**列表接口**却没太有必要，因此又要用到视图集根据请求方式动态获取序列化器的技术了：
+
+```python
+# article/views.py
+
+from article.serializers import ArticleDetailSerializer
+
+...
+
+# 新增 get_serializer_class() 方法
+class ArticleViewSet(viewsets.ModelViewSet):
+    ...
+
+    def get_serializer_class(self):
+        if self.action == 'list':
+            return ArticleSerializer
+        else:
+            return ArticleDetailSerializer
+```
+
+序列化器 `ArticleDetailSerializer` 还没有写
+
+### 序列化器
+
+因为**文章列表接口**和**详情接口**只有一点点返回字段的区别，其实大部分功能还是一样的。所以抽象成为父类：
+
+```python
+# article/serializers.py
+
+...
+
+# 将已有的 ArticleSerializer 里的东西全部挪到这个 ArticleBaseSerializer 里来
+# 除了 Meta 类保留
+class ArticleBaseSerializer(serializers.HyperlinkedModelSerializer):
+    author = ...
+    category = ...
+    category_id = ...
+    tags = ...
+
+    def to_internal_value(self, data):
+        ...
+
+    def validate_category_id(self, value):
+        ...
+
+# 保留 Meta 类
+# 将父类改为 ArticleBaseSerializer
+class ArticleSerializer(ArticleBaseSerializer):
+    class Meta:
+        model = Article
+        fields = '__all__'
+        extra_kwargs = {'body': {'write_only': True}}
+```
+
+与 Django 表单类似，你可以继承扩展和重用序列化器。就像上面的代码一样，在父类上声明一组通用的字段或方法，然后在许多序列化程序中使用它们。
+
+但是内部类 `class Meta` 比较特殊，它不会隐式从父类继承。虽然有办法让它隐式继承，但这是不被推荐的，你应该显式声明它，以使得序列化器的行为更清晰。
+
+另外，如果你觉得在列表接口连 `body` 字段也不需要显示的话，你可以传入 `extra_kwargs` 使其变成仅可写却不显示的字段。
+
+把这些**代码重构**的准备工作都搞定之后，就可以正式写这个新的 `ArticleDetailSerializer` 了：
+
+```python
+# article/serializers.py
+
+...
+
+# 注意继承的父类是 ArticleBaseSerializer
+class ArticleDetailSerializer(ArticleBaseSerializer):
+    # 渲染后的正文
+    body_html = serializers.SerializerMethodField()
+    # 渲染后的目录
+    toc_html = serializers.SerializerMethodField()
+
+    def get_body_html(self, obj):
+        return obj.get_md()[0]
+
+    def get_toc_html(self, obj):
+        return obj.get_md()[1]
+
+    class Meta:
+        model = Article
+        fields = '__all__'
+```
+
+`body_html` 、 `toc_html` 这两个渲染后的字段是经过加工后的数据，不存在于原始的数据中。为了将这类只读的附加字段添加到接口里，就可以用到 `SerializerMethodField()` 字段了。比如说上面代码中的 `body_html` 字段，它会自动去调用 `get_body_html()` 方法，并将其返回结果作为需要序列化的数据。方法中的 `obj` 参数是序列化器获取到的 model 实例，也就是文章对象了。
+
+这样就大功告成了，读者自己测试一下，顺利的话详情接口就可以返回 Markdown 渲染后的数据了。
+
+ ![image-20230302224810408](assets/image-20230302224810408.png)
+
+> 记得原始文本应该用 Markdown 语法编写。成功的话 `body_html` 字段返回的是带有 html 标签的文本。
+>
+> 代码重构得太早可能会导致某些不必要的抽象，太晚又可能堆积太多”屎山“而无从下手。理想情况下的重构是随着项目的开发同时进行的，在合适的节点进行合适的抽象，看着代码逐渐规整，你也会相当有成就感。
+
+另一个问题是，有时候你可能出于版权方面的考虑不愿意将原始的 Markdown 文章数据给任意用户，那么这里只要做一次鉴权，根据用户的权限选用不同的序列化器即可。（非管理员不返回原始文章数据）
+
+## 15.文章标题图
+
+即使是一个最简单的博客项目，也绕不开文件的上传与下载，比如说博文的标题图片。很遗憾，Json 格式的载体是字符串，不能够直接处理文件流。
+
+怎么办？很多开发者用 DRF 处理文件上传还是沿用了 Django 的老路子，即用 `multipart/form-data` 表单发送夹杂着元数据的文件。这种方法可行，但在主要接口中发送编码文件总感觉不太舒服。
+
+除了上面这种老路子以外，你基本上还剩三种选择：
+
+- 用 Base64 对文件进行编码（将文件变成字符串）。这种方法简单粗暴，并且只靠 Json 接口就可以实现。代价是数据传输大小增加了约 33％，并在服务器和客户端中增加了编码/解码的开销。
+- 首先在 `multipart/form-data` 中单独发送文件，然后后端将保存好的文件 id 返回给客户端。客户端拿到文件 id 后，发送带有文件 id 的 Json 数据，在服务器端将它们关联起来。
+- 首先单独发送 Json 数据，然后后端保存好这些元数据后将其 id 返回给客户端。接着客户端发送带有元数据 id 的文件，在服务器端将它们关联起来。
+
+三种方法各有优劣，具体用哪种方法应当视实际情况确定。
+
+本文将使用第二种方法来实现博文标题图的功能。
+
+### 模型和视图
+
+图片字段 `ImageField` 依赖 `Pillow` 库，先把它安装好：
+
+```
+python -m pip install Pillow
+```
+
+> 旧版本 pip 可能安装 Pillow 会失败，比如 pip==10.x 。如果安装过程中报错，请尝试升级 pip。
+
+按照上述两步走的思路：先上传图片、再上传其他文章数据的流程，将标题图设计为一个独立的模型：
+
+```python
+# article/models.py
+
+...
+class Avatar(models.Model):
+    content = models.ImageField(upload_to='avatar/%Y%m%d')
+
+
+class Article(models.Model):
+    ...
+    # 标题图
+    avatar = models.ForeignKey(
+        Avatar,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='article'
+    )
+```
+
+`Avatar` 模型仅包含一个图片字段。接收的图片将保存在 `media/avatar/年月日/` 的路径中。
+
+接着按部就班的把视图集写了：
+
+```python
+# article/views.py
+
+...
+from article.models import Avatar
+# 这个 AvatarSerializer 最后来写
+from article.serializers import AvatarSerializer
+
+class AvatarViewSet(viewsets.ModelViewSet):
+    queryset = Avatar.objects.all()
+    serializer_class = AvatarSerializer
+    permission_classes = [IsAdminUserOrReadOnly]
+```
+
+图片属于媒体文件，它也需要路由，因此会多一点点配置工作：
+
+```python
+# blog/settings.py
+
+...
+MEDIA_URL =  '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+```
+
+以及注册路由：
+
+```python
+# blog/urls.py
+
+...
+from django.conf import settings
+from django.conf.urls.static import static
+
+...
+router.register(r'avatar', views.AvatarViewSet)
+
+urlpatterns = [
+    ...
+]
+
+# 把媒体文件的路由注册了
+if settings.DEBUG:
+  urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+```
+
+这些准备工作都搞好了，就又到了喜闻乐见的写序列化器的环节。
+
+### 序列化器
+
+图片是在文章上传前先单独上传的，因此需要有一个单独的序列化器：
+
+```python
+# article/serializers.py
+
+...
+
+from article.models import Avatar
+
+class AvatarSerializer(serializers.ModelSerializer):
+    url = serializers.HyperlinkedIdentityField(view_name='avatar-detail')
+
+    class Meta:
+        model = Avatar
+        fields = '__all__'
+```
+
+DRF 对图片的处理进行了封装，通常不需要你关心实现的细节，只需要像其他 Json 接口一样写序列化器就可以了。
+
+图片上传完成后，会将其 id、url 等信息返回到前端，前端将图片的信息以嵌套结构表示到文章接口中，并在适当的时候将其链接到文章数据中：
+
+```python
+# article/serializers.py
+
+...
+
+class ArticleBaseSerializer(serializers.HyperlinkedModelSerializer):
+    ...
+    
+    # 图片字段
+    avatar = AvatarSerializer(read_only=True)
+    avatar_id = serializers.IntegerField(
+        write_only=True, 
+        allow_null=True, 
+        required=False
+    )
+
+    # 验证图片 id 是否存在
+    # 不存在则返回验证错误
+    def validate_avatar_id(self, value):
+        if not Avatar.objects.filter(id=value).exists() and value is not None:
+            raise serializers.ValidationError("Avatar with id {} not exists.".format(value))
+
+        return value
+    
+    ...
+```
+
+用户的操作流程如下：
+
+- 发表新文章时，标题图需要先上传。
+- 标题图上传完成会返回其数据（比如图片数据的 id）到前端并暂存，等待新文章完成后一起提交。
+- 提交新文章时，序列化器对标题图进行检查，如果无效则返回错误信息。
+
+> 这个流程在后面的前端章节会体现得更直观。
+
+### 测试
+
+接下来测试图片的增删改查。
+
+> Postman 操作文件接口需要将 `Content-Type` 改为 `multipart/form-data` ，并在 `Body` 中上传图片文件。具体操作方式请百度。
+
+创建新图片：
+
+ ![image-20230302232139054](assets/image-20230302232139054.png)
+
+> 看到创建图片后返回的 id 了吗？其实就是图片是先于 Json 数据单独上传的，上传完毕后客户端将其 id 记住，以便真正提交 Json 时能与之对应。
+
+更新已有图片：
+
+ ![image-20230302232334761](assets/image-20230302232334761.png)
+
+删除：
+
+![image-20230302232545098](assets/image-20230302232545098.png)
+
+查找图片：
+
+ ![image-20230302232457631](assets/image-20230302232457631.png)
+
+### 重构
+
+仔细看下 `ArticleBaseSerializer` 序列化器，发现**分类**和**标题图**的验证方法是比较类似的：
+
+```python
+# article/serializers.py
+
+...
+
+class ArticleBaseSerializer(serializers.HyperlinkedModelSerializer):
+    ...
+
+    def validate_avatar_id(self, value):
+        if not Avatar.objects.filter(id=value).exists() and value is not None:
+            raise serializers.ValidationError("Avatar with id {} not exists.".format(value))
+            self.fail('incorrect_avatar_id', value=value)
+
+        return value
+
+    def validate_category_id(self, value):
+        if not Category.objects.filter(id=value).exists() and value is not None:
+            raise serializers.ValidationError("Category with id {} not exists.".format(value))
+            self.fail('incorrect_category_id', value=value)
+
+        return value
+```
+
+因此可以将它们整理整理，变成下面的样子：
+
+```python
+# article/serializers.py
+
+...
+
+class ArticleBaseSerializer(serializers.HyperlinkedModelSerializer):
+    ...
+
+    # 自定义错误信息
+    default_error_messages = {
+        'incorrect_avatar_id': 'Avatar with id {value} not exists.',
+        'incorrect_category_id': 'Category with id {value} not exists.',
+        'default': 'No more message here..'
+    }
+
+    def check_obj_exists_or_fail(self, model, value, message='default'):
+        if not self.default_error_messages.get(message, None):
+            message = 'default'
+
+        if not model.objects.filter(id=value).exists() and value is not None:
+            self.fail(message, value=value)
+
+    def validate_avatar_id(self, value):
+        self.check_obj_exists_or_fail(
+            model=Avatar,
+            value=value,
+            message='incorrect_avatar_id'
+        )
+
+        return value
+
+    def validate_category_id(self, value):
+        self.check_obj_exists_or_fail(
+            model=Category,
+            value=value,
+            message='incorrect_category_id'
+        )
+
+        return value
+```
+
+- 把两个字段验证器的雷同代码抽象到 `check_obj_exists_or_fail()` 方法里。
+- `check_obj_exists_or_fail()` 方法检查了数据对象是否存在，若不存在则调用钩子方法 `fail()` 引发错误。
+- `fail()` 又会调取 `default_error_messages` 属性中提供的错误类型，并将其返回给接口。
+
+看起来似乎代码行数更多了，但更整洁了。起码你的报错信息不再零散分布在整个序列化器中，并且合并了两个验证器的重复代码，维护起来会更省事。
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
