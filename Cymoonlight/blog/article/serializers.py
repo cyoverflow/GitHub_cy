@@ -4,6 +4,7 @@ from article.models import Category
 from article.models import Tag
 from article.models import Avatar
 from user_info.serializers import UserDescSerializer
+from comment.serializers import CommentSerializer
 
 class AvatarSerializer(serializers.ModelSerializer):
     url = serializers.HyperlinkedIdentityField(view_name='avatar-detail')
@@ -68,6 +69,8 @@ class CategorySerializer(serializers.ModelSerializer):
 # 除了 Meta 类保留
 class ArticleBaseSerializer(serializers.HyperlinkedModelSerializer):
     """文章序列化器"""
+    # vue-router 会用到文章的 id 作为动态地址
+    id = serializers.IntegerField(read_only=True)
     author = UserDescSerializer(read_only=True)
     # tag 字段
     tags = serializers.SlugRelatedField(
@@ -159,6 +162,9 @@ class ArticleDetailSerializer(ArticleBaseSerializer):
     body_html = serializers.SerializerMethodField()
     # 渲染后的目录
     toc_html = serializers.SerializerMethodField()
+    # 评论
+    id = serializers.IntegerField(read_only=True)
+    comments = CommentSerializer(many=True, read_only=True)
 
     def get_body_html(self, obj):
         return obj.get_md()[0]

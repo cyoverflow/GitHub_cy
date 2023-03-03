@@ -2306,6 +2306,1618 @@ class ArticleBaseSerializer(serializers.HyperlinkedModelSerializer):
 
 看起来似乎代码行数更多了，但更整洁了。起码你的报错信息不再零散分布在整个序列化器中，并且合并了两个验证器的重复代码，维护起来会更省事。
 
+## 16.评论
+
+评论是博客作者和读者进行沟通的重要方式，也是博客作者检视自身文章质量的手段。
+
+虽然有很多方式可以将评论功能托管给第三方（我也推荐这么做），不过本着学习的目的，接下来就试着自己实现简单的评论接口。
+
+### 准备工作
+
+评论功能比较独立，因此另起一个 `comment` 的 App：
+
+```
+(venv) > python manage.py startapp comment
+```
+
+注册到配置文件：
+
+```python
+# drf_vue_blog/settings.py
+
+...
+
+INSTALLED_APPS = [
+    ...
+    'comment',
+]
+```
+
+接下来就是模型：
+
+```python
+# comment/models.py
+
+from django.db import models
+from django.utils import timezone
+
+from article.models import Article
+from django.contrib.auth.models import User
+
+
+class Comment(models.Model):
+    author = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='comments'
+    )
+
+    article = models.ForeignKey(
+        Article,
+        on_delete=models.CASCADE,
+        related_name='comments'
+    )
+
+    content = models.TextField()
+    created = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        ordering = ['-created']
+
+    def __str__(self):
+        return self.content[:20]
+```
+
+模型包含一对多的作者外键、一对多的文章外键、评论实际内容、评论时间这4个字段。
+
+执行 `makemigrations` 和 `migrate` ，准备工作就完成了。
+
+### 视图和序列化
+
+视图集和之前章节的差不多：
+
+```python
+# comment/views.py
+
+from rest_framework import viewsets
+
+from comment.models import Comment
+from comment.serializers import CommentSerializer
+from comment.permissions import IsOwnerOrReadOnly
+
+
+class CommentViewSet(viewsets.ModelViewSet):
+    queryset = Comment.objects.all()
+    serializer_class = CommentSerializer
+    permission_classes = [IsOwnerOrReadOnly]
+
+    def perform_create(self, serializer):
+        serializer.save(author=self.request.user)
+```
+
+接下来写评论的权限。
+
+评论对用户身份的要求比文章的更松弛，**非安全请求**只需要是本人操作就可以了。
+
+因此自定义一个所有人都可查看、仅本人可更改的权限：
+
+```python
+# comment/permissions.py
+
+from rest_framework.permissions import BasePermission, SAFE_METHODS
+
+class IsOwnerOrReadOnly(BasePermission):
+    message = 'You must be the owner to update.'
+
+    def has_permission(self, request, view):
+        if request.method in SAFE_METHODS:
+            return True
+
+        return request.user.is_authenticated
+
+    def has_object_permission(self, request, view, obj):
+        if request.method in SAFE_METHODS:
+            return True
+
+        return obj.author == request.user
+```
+
+进行**非安全请求**时，由于需要验证当前评论的作者和当前登录的用户是否为同一个人，这里用到了 `def has_object_permission(...)` 这个钩子方法，方法参数中的 `obj` 即为评论模型的实例。
+
+看起来只需要实现这个 `def has_object_permission(...)` 就可以了，但还有一点点小问题：此方法是晚于视图集中的 `def perform_create(author=self.request.user)` 执行的。如果用户未登录时新建评论，由于用户不存在，接口会抛出 500 错误。
+
+本着即使出错也要做出正确错误提示的原则，增加了 `def has_permission(...)` 方法。此方法早于 `def perform_create(...)` 执行，因此能够对用户登录状态做一个预先检查。
+
+功能这样就实现了，但是重复的代码又出现了，让我们来消灭它。
+
+删掉旧代码，把这个权限类修改为下面这样：
+
+```python
+# comment/permissions.py
+# ...
+class IsOwnerOrReadOnly(BasePermission):
+    message = 'You must be the owner to update.'
+
+    def safe_methods_or_owner(self, request, func):
+        if request.method in SAFE_METHODS:
+            return True
+
+        return func()
+
+    def has_permission(self, request, view):
+        return self.safe_methods_or_owner(
+            request,
+            lambda: request.user.is_authenticated
+        )
+
+    def has_object_permission(self, request, view, obj):
+        return self.safe_methods_or_owner(
+            request,
+            lambda: obj.author == request.user
+        )
+```
+
+用匿名函数将有函数体（闭包）作为参数，传递到 `def safe_methods_or_owner(...)` 方法里执行，效果和之前是完全一样的。
+
+接下来的东西就都轻车熟路了。
+
+将视图集注册到路由：
+
+```python
+# blog/urls.py
+
+...
+
+# 这里直接导入 views 会冲突
+from comment.views import CommentViewSet
+router.register(r'comment', CommentViewSet)
+```
+
+将评论的序列化器写了：
+
+```python
+# comment/serializers.py
+
+from rest_framework import serializers
+
+from comment.models import Comment
+from user_info.serializers import UserDescSerializer
+
+
+class CommentSerializer(serializers.ModelSerializer):
+    url = serializers.HyperlinkedIdentityField(view_name='comment-detail')
+    author = UserDescSerializer(read_only=True)
+
+    class Meta:
+        model = Comment
+        fields = '__all__'
+        extra_kwargs = {'created': {'read_only': True}}
+```
+
+跟之前一样， `url` 超链接字段让接口的跳转更方便，`author` 嵌套序列化器让显示的内容更丰富。
+
+最后让评论通过文章接口显示出来：
+
+```python
+# article/serializers.py
+
+...
+
+from comment.serializers import CommentSerializer
+
+class ArticleDetailSerializer(...):
+    id = serializers.IntegerField(read_only=True)
+    comments = CommentSerializer(many=True, read_only=True)
+
+    ...
+```
+
+### 测试
+
+发几个请求测试接口逻辑是否正确。
+
+未登录用户新建评论：
+
+ ![image-20230303190717412](assets/image-20230303190717412.png)
+
+用之前注册好的用户 `sleepyjoe` 新建评论：
+
+ ![image-20230303190908324](assets/image-20230303190908324.png)
+
+用非本人用户 `cy99` 更新评论：
+
+ ![image-20230303191305157](assets/image-20230303191305157.png)
+
+用 `sleepyjoe` 删除评论：
+
+![image-20230303191436262](assets/image-20230303191436262.png)
+
+非本人无法对资源进行更改，很好的符合了预期逻辑。
+
+## 17.二级评论
+
+上一章我们做好了评论功能，就有了作者和读者沟通的方式。
+
+但有的时候读者和读者同样需要沟通，评论别人的评论，俗称**多级评论**。
+
+本章将实现基础的多级评论功能。
+
+> 准确的讲是两级评论。
+
+### 模型
+
+多级评论，也就是让评论模型和自身相关联，使其可以有一个父级。
+
+修改评论模型，新增 `parent` 字段：
+
+```python
+# comment/models.py
+
+...
+class Comment(models.Model):
+    ...
+    parent = models.ForeignKey(
+        'self',
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='children'
+    )
+```
+
+- 一个父评论可以有多个子评论，而一个子评论只能有一个父评论，因此用了一对多外键。
+- 之前的一对多外键，第一个参数直接引用了对应的模型，但是由于语法规则限制，这里显然不能够自己引用自己，因此用了传递字符串 `self` 的方式，作用都是一样的。
+
+进行迁移后，模型就改好了。
+
+### 序列化器
+
+在原有的评论序列化器上修改：
+
+```python
+# comment/serializers.py
+
+...
+
+# 新增这个类
+class CommentChildrenSerializer(serializers.ModelSerializer):
+    url = serializers.HyperlinkedIdentityField(view_name='comment-detail')
+    author = UserDescSerializer(read_only=True)
+
+    class Meta:
+        model = Comment
+        exclude = [
+            'parent',
+            'article'
+        ]
+
+# 修改这个类
+class CommentSerializer(serializers.ModelSerializer):
+    # 这是已有代码
+    url = serializers.HyperlinkedIdentityField(view_name='comment-detail')
+    author = UserDescSerializer(read_only=True)
+
+    # 以下是新增代码
+    article = serializers.HyperlinkedRelatedField(view_name='article-detail', read_only=True)
+    article_id = serializers.IntegerField(write_only=True, allow_null=False, required=True)
+
+    parent = CommentChildrenSerializer(read_only=True)
+    parent_id = serializers.IntegerField(write_only=True, allow_null=True, required=False)
+
+    def update(self, instance, validated_data):
+        validated_data.pop('parent_id', None)
+        return super().update(instance, validated_data)
+
+    class Meta:
+        ...
+```
+
+新增代码大致可以分为三块，让我们来拆解它们：
+
+- 为了让文章引用更人性化，将 `article` 改为超链接字段用了 `HyperlinkedRelatedField` ，它和之前用过的 `HyperlinkedIdentityField` 差别很小，你可以简化理解为 `HyperlinkedRelatedField` 用于对外键关系，而 `HyperlinkedIdentityField` 用于对当前模型自身。（完整的解释[看这里](https://stackoverflow.com/questions/31566675/for-django-rest-framework-what-is-the-difference-in-use-case-for-hyperlinkedrel)）
+- `parent` 为父评论，用了嵌套序列化器 `CommentChildrenSerializer` 。注意这个序列化器的 `Meta` 用 `exclude` 来定义不需要的字段。
+- 由于我们希望父评论只能在创建时被关联，后续不能更改（很合理），因此覆写 `def update(...)` ，使得在更新评论时忽略掉 `parent_id` 参数。
+
+这就完成了。接下来测试。
+
+### 测试
+
+新建一个文章主键为 2 、父评论主键为 7 的评论：
+
+![image-20230303193848536](assets/image-20230303193848536.png)
+
+注意这里由于将 `article` 改为了嵌套序列化器（只读），因此用 `article_id` 进行外键赋值。
+
+如果我想在更新评论内容的同时修改父评论：
+
+![image-20230303194151909](assets/image-20230303194151909.png)
+
+`content` 修改成功而 `parent_id` 无变化，和预想的逻辑表现一致。
+
+其他的请求形式就不赘述了，读者可以自行尝试。
+
+## 18.JWT身份验证
+
+Web 程序是使用 HTTP 协议传输的，而 HTTP 协议是**无状态**的协议，对于事务没有记忆能力。也就是说，如果没有其他形式的帮助，服务器是没办法知道前后两次请求是否是同一个用户发起的，也不具有对用户进行身份验证的能力。
+
+传统 web 开发中（以及前面的章节），身份验证**通常**是基于 Session 会话机制的。Session 对象存储特定用户会话所需的属性及配置信息。这样，当用户在应用程序的 Web 页之间跳转时，存储在 Session 对象中的变量将不会丢失，而是在整个用户会话中一直存在下去。 Session 通常是存储在服务器当中的，如果 Session 过多，会对服务器产生压力。
+
+另一种比较常用的身份验证方式是 JWT (JSON Web Token) 令牌。JWT 是一种开放标准，它定义了一种紧凑且自包含的方式，用于在各方之间作为 JSON 对象安全地传输信息。由于 Token 是经过数字签名的，因此可以被验证和信任。JWT 非常适合用于身份验证和服务器到服务器授权。与 Session 不同，JWT 的 **Token** 是保存在用户端的，即摆脱了对服务器的依赖。
+
+JWT 令牌长这样子的：
+
+```
+eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNjA5MjEwMjg0LCJqdGkiOiJiNzMxMTliMTZjNWM0YTExODNkOGJiZTNhZDZmZmYzMyIsInVzZXJfaWQiOjJ9.59ZavqFzjE3EoDrniu2cwgc_cq1Rv1OxpZeqRte_HLw
+```
+
+在进行某些需要验证身份的业务中，用户需要把令牌一并提交（就跟提交用户名及密码类似）。
+
+> 这里有详细的 [JWT 工作方式讲解](https://jwt.io/introduction)。
+
+本章尝试将身份验证方法更改为 JWT 形式。
+
+### 代码修改
+
+首先 pip 安装 `djangorestframework-simplejwt` 这个 jwt 库：
+
+```
+(venv) > pip install djangorestframework-simplejwt
+```
+
+修改配置文件，使 JWT 为默认的验证机制：
+
+```python
+# blog/settings.py
+
+...
+
+REST_FRAMEWORK = {
+    ...
+    
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    )
+
+}
+```
+
+在根路由中添加 Token 的获取和刷新地址：
+
+```python
+# blog/urls.py
+
+...
+
+from rest_framework_simplejwt.views import (
+    TokenObtainPairView,
+    TokenRefreshView,
+)
+
+urlpatterns = [
+    ...
+    path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
+    path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+]
+```
+
+这就完成了，毫无痛苦，这就是用一个优秀轮子的好处。
+
+### 测试
+
+上一章的评论模块已经做好了权限控制的内容，正好拿来测试。
+
+首先，携带用户名和密码发送一个 POST 请求，以获取 Token：
+
+![image-20230303200501177](assets/image-20230303200501177.png)
+
+拿到 Token 后，就可以用 Token 作为你的身份令牌，进行正常的资源请求了：
+
+> Postman 有一个专门的标签页 (Authorization) 用于填写令牌。此标签页的 Type 栏选择 Bearer Token 即可。
+
+![image-20230303201341576](assets/image-20230303201341576.png)
+
+令牌具有过期时间（默认为**5分钟**，可在配置中修改），过期之后就不能再使用了，但是可用刷新令牌再获取一个新的令牌：
+
+![image-20230303201639882](assets/image-20230303201639882.png)
+
+功能与用 Session 相同，并且成功切换到 JWT 方式了。
+
+> 开启 JWT 后，Session 验证就自动失效了。也就是说，除了申请 Token 时会用到账户密码，其他时候的身份验证都不再需要它们了。
+>
+> Session 和 JWT 哪个好？将会话移至客户端意味着摆脱了对服务器端会话的依赖，但这会带来如何安全存储、运输令牌等一系列挑战。不能够一概而论，而是要根据你的项目实际需求。关于这个话题更深入的讨论，请移步[Stackoverflow](https://stackoverflow.com/questions/43452896/authentication-jwt-usage-vs-session)。
+
+### 有效期
+
+Token 默认有效期很短，只有 5 分钟。你可以通过修改 Django 的配置文件进行更改：
+
+```python
+# blog/settings.py
+
+...
+
+from datetime import timedelta
+
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(days=1),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=10),
+}
+```
+
+> Token 一旦泄露，任何人都可以获得该令牌的所有权限。出于安全考虑，Token 的有效期通常不应该设置得太长。
+
+更多配置项请查看[官方文档](https://django-rest-framework-simplejwt.readthedocs.io/en/latest/settings.html)。
+
+## 19.用户管理
+
+上一章搞定了 JWT 登录，本章接着来实现用户信息的增删改查。
+
+### 用户管理
+
+用户管理涉及到对密码的操作，因此新写一个序列化器，覆写 `def create(...)` 和 `def update(...)` 方法：
+
+```python
+# user_info/serializers.py
+
+...
+
+class UserRegisterSerializer(serializers.ModelSerializer):
+    url = serializers.HyperlinkedIdentityField(view_name='user-detail', lookup_field='username')
+
+    class Meta:
+        model = User
+        fields = [
+            'url',
+            'id',
+            'username',
+            'password'
+        ]
+        extra_kwargs = {
+            'password': {'write_only': True}
+        }
+
+    def create(self, validated_data):
+        user = User.objects.create_user(**validated_data)
+        return user
+
+    def update(self, instance, validated_data):
+        if 'password' in validated_data:
+            password = validated_data.pop('password')
+            instance.set_password(password)
+        return super().update(instance, validated_data)
+```
+
+- 注意 `def update(...)` 时，密码需要单独拿出来通过 `set_password()` 方法加密后存入数据库，而不能以明文的形式保存。
+- 超链接字段的参数有一条 `lookup_field`，这是指定了解析超链接关系的字段。直观来说，将其配置为 `username` 后，用户详情接口的地址表示为用户名而不是主键。
+
+用户管理同样涉及的权限问题，因此新建 `permissions.py`，写入代码：
+
+```python
+# user_info/permissions.py
+
+from rest_framework.permissions import BasePermission, SAFE_METHODS
+
+
+class IsSelfOrReadOnly(BasePermission):
+
+    def has_object_permission(self, request, view, obj):
+        if request.method in SAFE_METHODS:
+            return True
+
+        return obj == request.user
+```
+
+这个权限类和之前写过的类似，确保非安全方法只能由本人操作。
+
+铺垫工作做好了，最后就是写视图集：
+
+```python
+# user_info/views.py
+
+from django.contrib.auth.models import User
+from rest_framework import viewsets
+from rest_framework.permissions import AllowAny, IsAuthenticatedOrReadOnly
+
+from user_info.serializers import UserRegisterSerializer
+from user_info.permissions import IsSelfOrReadOnly
+
+
+class UserViewSet(viewsets.ModelViewSet):
+    queryset = User.objects.all()
+    serializer_class = UserRegisterSerializer
+    lookup_field = 'username'
+
+    def get_permissions(self):
+        if self.request.method == 'POST':
+            self.permission_classes = [AllowAny]
+        else:
+            self.permission_classes = [IsAuthenticatedOrReadOnly, IsSelfOrReadOnly]
+
+        return super().get_permissions()
+```
+
+- 注册用户的 POST 请求是允许所有人都可以操作的，但其他类型的请求（比如修改、删除）就必须是本人才行了，因此可以覆写 `def get_permissions(...)` 定义不同情况下所允许的权限。 `permission_classes` 接受列表，因此可以同时定义多个权限，权限之间是 and 关系。
+- 注意这里的 `lookup_field` 属性，和序列化器中对应起来。
+
+接着注册路由：
+
+```python
+# blog/urls.py
+
+...
+
+from user_info.views import UserViewSet
+
+router.register(r'user', UserViewSet)
+
+...
+```
+
+用户的增删改查就完成了。可见 DRF 封装层级很高，常规功能完全隐藏在框架之中了。
+
+试着发送一个 get 请求：
+
+![image-20230303215705848](assets/image-20230303215705848.png)
+
+可以看到详情地址不是主键值而是用户名了，这就是 `lookup_field` 发挥的作用。
+
+ 修改密码：![image-20230303221236376](assets/image-20230303221236376.png)
+
+### 自定义动作
+
+视图集除了默认的增删改查外，还可以有其他的自定义动作。
+
+为了测试，首先写一个信息更加丰富的用户序列化器：
+
+```python
+# user_info/serializers.py
+
+...
+
+class UserDetailSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = [
+            'id',
+            'username',
+            'last_name',
+            'first_name',
+            'email',
+            'last_login',
+            'date_joined'
+        ]
+```
+
+接着就可以在视图集中新增代码，自定义动作了：
+
+```python
+# user_info/views.py
+
+...
+
+from rest_framework.decorators import action
+from rest_framework.response import Response
+from user_info.serializers import UserDetailSerializer
+
+class UserViewSet(viewsets.ModelViewSet):
+    ...
+
+    @action(detail=True, methods=['get'])
+    def info(self, request, username=None):
+        queryset = User.objects.get(username=username)
+        serializer = UserDetailSerializer(queryset, many=False)
+        return Response(serializer.data)
+
+    @action(detail=False)
+    def sorted(self, request):
+        users = User.objects.all().order_by('-username')
+
+        page = self.paginate_queryset(users)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
+        serializer = self.get_serializer(users, many=True)
+        return Response(serializer.data)
+```
+
+魔法都在装饰器 `@action` 里，它的参数可以定义是否为详情的动作、请求类型、url 地址、url 解析名等常规需求。
+
+### 测试
+
+获取单个用户详情：
+
+![image-20230303222310126](assets/image-20230303222310126.png)
+
+排序并获取用户列表:
+
+![image-20230303222348530](assets/image-20230303222348530.png)
+
+默认情况下，方法名就是此动作的路由路径。返回的 Json 也正确显示为方法中所封装的数据。
+
+> 关于自定义动作详见[官方文档](https://www.django-rest-framework.org/api-guide/viewsets/#marking-extra-actions-for-routing)。
+
+## 20.前端开发准备
+
+博客后端的主要开发工作就告一段落了。
+
+**覆盖的知识点**主要有：
+
+- REST 的概念
+- 序列化器/APIView
+- 类视图和通用视图
+- 权限控制
+- ModelSerializer
+- 超链接字段/分页
+- 视图集/ModelViewSet
+- SearchFilter/DjangoFilterBackend
+- 嵌套序列化器/操作外键
+- 验证器/覆写动作
+- 自定义字段
+- 文件上传
+- 添加保存数据
+- 模型自关联
+- JWT 身份验证
+- 权限分配/自定义动作
+
+后面的章节将正式进入 Vue 前端的搭建。**核心知识点**有：
+
+- 用 Vue 搭建前端页面
+- 实现 Vue 和 Django 的配合
+- 继续完善 Django 后端功能
+
+在前端开发中，笔者将用到的环境如下：
+
+- Vue 3
+- Vue-Cli 5.0.8
+- npm 6.14.12
+
+### 准备工作
+
+开发前端时会用到 **npm**（类似 Python 的包管理工具 Pip），这是 Node.js 官方提供的包管理工具。
+
+所以准备工作的第一步，安装 Node.js，下载地址在[官网](https://nodejs.org/en/)，安装时基本就是一路 next。
+
+完毕后打开命令行（依旧默认是 PowerShell），输入：
+
+```
+> npm -v
+6.14.12
+```
+
+显示版本号就表示安装成功了。
+
+> npm 站点在国外，如果你遇到安装速度慢的问题，可以用指令 `npm config set registry https://registry.npm.taobao.org` 修改为国内镜像源。
+
+接下来就可以安装 Vue 的**命令行工具**，它可以帮助我们方便的搭建 Vue 项目的骨架：
+
+```
+> npm install -g @vue/cli
+
+# 这里省略一段神秘的安装文字...
+
+> vue --version
+@vue/cli 5.0.8
+```
+
+同样的，显示版本号就表示安装成功了。
+
+> 深入了解见[Vue-Cli文档](https://cli.vuejs.org/zh/guide/)。
+
+> 如果运行命令报错"vue: 无法加载文件 C:\xxx\vue.ps1，因为在此系统上禁止运行脚本"，则需要通过 PowerShell 解除 `Execution_Policies` 运行策略限制。方法见[这里](https://blog.csdn.net/moshowgame/article/details/109405127)。
+
+进入 Django 项目的根目录，用命令行工具搭建 Vue 骨架：
+
+```
+# 改为你的项目根路径
+> cd D:\develop\git_repo\GitHub_cy\Cymoonlight\blog
+> vue create frontend
+```
+
+**一定要**选择安装 Vue 3：
+
+> 前面说了，Vue 3 和 Vue 2 变化比较大，装错了后面章节的代码可能都跑不起来。
+
+然后等待安装完成：
+
+ ![image-20230303223641903](assets/image-20230303223641903.png)
+
+出现这段文字说明 Vue 安装完成了。
+
+与 Django 需要运行服务器类似，作为前后端分离的项目，**在开发时**前端同样也需要运行前端的服务器。
+
+根据文字提示，进入 `frontend` 目录，运行 Vue 的开发服务器：
+
+ ![image-20230303225504984](assets/image-20230303225504984.png)
+
+`http://localhost:8080/` 即可看到 Vue 的欢迎页面了。
+
+进行后续章节的开发时，我们需要**同时运行**后端 `http://127.0.0.1:8000/` 和前端 `http://localhost:8080/` 两个服务器，别搞混了。
+
+## 21.文章列表
+
+本章就正式开始写基于 Vue 3 的前端页面了，具体来说就是编写一个简洁的文章列表页面
+
+### 准备工作
+
+**安装Axios**
+
+虽然现在前后端 Django + Vue 都有了，但还缺一个它们之间通信的手段。Vue 官方推荐的是 [axios](https://github.com/axios/axios) 这个前端库。
+
+命令行进入 `frontend` 目录，安装 axios：
+
+```
+> npm install axios
+```
+
+### 解决跨域
+
+跨域问题是由于浏览器的同源策略（域名，协议，端口均相同）造成的，是浏览器施加的安全限制。说简单点，Vue 服务器端口（8080）和 Django 服务器端口（8000）不一致，因此无法通过 Javascript 代码请求后端资源。
+
+解决办法有两种。
+
+**第一种方法**是创建 `frontend/vue.config.js` 文件并写入：
+
+```
+module.exports = {
+    devServer: {
+        proxy: {
+            '/api': {
+                target: `http://127.0.0.1:8000/api`,
+                changeOrigin: true,
+                pathRewrite: {
+                    '^/api': ''
+                }
+            }
+        }
+    }
+};
+```
+
+这个 Vue 的配置文件给前端服务器设置了代理，即将 `/api` 地址的前端请求转发到 8000 端口的后端服务器去，从而规避跨域问题。
+
+**另一种方法**是在后端引入 `django-cors-middleware` 这个库，在后端解决此问题。
+
+> 此方法具体步骤百度很多，就不赘述了。
+
+两种解决方法都可以，本文将选择第一种即前端代理的方法。
+
+### Vue结构
+
+本教程假定读者已经具有了 `Javascript` / `Html` / `Css` 等前端基础知识，因此不会展开讲相关内容。但为了理解 Vue 的基本结构，让我们来看三个重要的文件。
+
+#### index.html
+
+此文件路径位于 `frontend/public/index.html`，内容如下：
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    ...
+  </head>
+  <body>
+    ...
+    <div id="app"></div>
+    <!-- built files will be auto injected -->
+  </body>
+</html>
+```
+
+这个页面是整个前端工程提供 html 的入口，里面的 `<div id="app">` 是 Vue 初始化应用程序的根容器。
+
+不过在前端工程化的思想中，我们很少会直接去写这类 `html` 文件。
+
+#### main.js
+
+此文件位于 `frontend/src/main.js` ，内容如下：
+
+```javascript
+import {createApp} from 'vue'
+import App from './App.vue'
+
+createApp(App).mount('#app');
+```
+
+它的作用就是把后续你要写的 Vue 组件挂载到刚才那个 `index.html` 中。
+
+如果你有些前端的初始化配置，都可以写到这里。
+
+#### App.vue
+
+此文件位于 `frontend/src/App.vue` ，内容如下：
+
+```vue
+<template>
+    <img alt="Vue logo" src="./assets/logo.png">
+    <HelloWorld msg="Welcome to Your Vue.js App"/>
+</template>
+
+<script>
+    import HelloWorld from './components/HelloWorld.vue'
+    export default {
+        name: 'App',
+        components: {
+            HelloWorld
+        }
+    }
+</script>
+
+<style>
+    #app {
+        font-family: Avenir, Helvetica, Arial, sans-serif;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        text-align: center;
+        color: #2c3e50;
+        margin-top: 60px;
+    }
+</style>
+```
+
+仔细看一下，这个文件似乎就是对应 Vue 的欢迎页面嘛！
+
+Vue 采用组件化的思想，把同一个组件的内容打包到一起。比如这个默认的 `App.vue` 文件，明显 `<template>` 标签就对应传统的 `html` ，`<script>` 标签对应 `javascript` ，`<style>` 标签对应了 `css` 。
+
+`<HelloWorld .../>` 这个就是一个封装好的组件，路径位于 `frontend/src/components/HelloWorld.vue` 。
+
+以上就是 Vue 项目三个重要的文件，而对入门者来说，最重要的就是各种 `.vue` 文件，这就是你最主要的写代码的地方。
+
+> 翻一翻 frontend 中的每个文件，感受 Vue 项目的结构。
+
+### 文章列表
+
+接下来就实际尝试一下编写文章列表页面了，通常这也是博客的首页。
+
+首先把 `App.vue` 中的默认代码都删掉，写入以下代码：
+
+```vue
+<!--   frontend/src/App.vue   -->
+
+<template>
+    <div v-for="article in info.results" v-bind:key="article.url" id="articles">
+        <div class="article-title">
+            {{ article.title }}
+        </div>
+    </div>
+</template>
+
+<script>
+    import axios from 'axios';
+
+    export default {
+        name: 'App',
+        data: function () {
+            return {
+                info: ''
+            }
+        },
+        mounted() {
+            axios
+                .get('/api/article')
+                .then(response => (this.info = response.data))
+        }
+    }
+</script>
+
+<style>
+    #articles {
+        padding: 10px;
+    }
+
+    .article-title {
+        font-size: large;
+        font-weight: bolder;
+        color: black;
+        text-decoration: none;
+        padding: 5px 0 5px 0;
+    }
+</style>
+```
+
+像前面说的一样，Vue 把同一个组件的 `template` / `script` / `style` 打包到一起。
+
+让我们先从 `<script>` 脚本看起。
+
+#### script
+
+当一个 Vue 实例被创建时，它将 `data` 对象返回的所有属性加入到 Vue 的**响应式系统**中。更神奇的是，当这些属性的值发生改变时，视图将会产生“响应”，即自动更新为新的值。
+
+比方说上面代码的 `data` 中的 `info` 属性在初始化时赋值了一个空字符串。当 Vue 加载完成后调用了生命周期的钩子 `mounted()` 方法，通过 `axios` 向 Django 后端获取到文章列表数据并赋值给 `info` 后，页面中关联的部分也会立即随之更新，而不用你手动去操作页面元素，这就是响应式的好处。
+
+> Axios 自动将请求得到的 Json 数据转换为 JavaScript 对象，所以你可以直接调用接口里的数据了。
+>
+> 如果写好上述代码，访问 `http://localhost:8080/` 看不到任何内容，请检查后端服务器是否已启动，并查看浏览器控制台确保没有跨域相关的报错。
+
+#### template
+
+如果你之前学过 Django 内置的模板语法，那么 Vue 的模板语法就不难理解。元素块中以 `v` 打头的属性即是 Vue 的模板语法标记。 `v-for` 即循环可迭代元素（`info.results` 对应后端数据的 json 结构。请对照后端接口进行理解。），`v-bind:key` 给定了循环中每个元素的主键，作用是方便 Vue 渲染时对元素进行识别。
+
+注意，很巧的是 Vue 默认同样也用双花括号`{{ }}` 定义它所持有的数据对象。所以这里的双花括号和 Django 模板语法没有任何关系，千万别搞混了。
+
+#### style
+
+这部分纯粹就是 `css` 了，也就是规定了页面各元素的大小、位置、颜色等样式，比较基础就不展开讲了。
+
+顺利的话（别忘了前后端服务器都要启动），现在你的页面应该时这样子：（通过后台添加一些测试文章）
+
+ ![image-20230303233145659](assets/image-20230303233145659.png)
+
+虽然很简陋，但是成功把文章列表数据渲染出来了。
+
+### 优化界面
+
+继续给列表数据添加内容，比如显示后端辛辛苦苦开发的标签和创建时间：
+
+```vue
+<!--   frontend/src/App.vue   -->
+
+<template>
+    
+    ...
+    
+    <div v-for="...">
+        <div>
+            <span 
+                  v-for="tag in article.tags" 
+                  v-bind:key="tag" 
+                  class="tag"
+            >
+                {{ tag }}
+            </span>
+        </div>
+
+        <div class="article-title">...</div>
+
+        <div>{{ formatted_time(article.created) }}</div>
+    </div>
+
+</template>
+
+<script>
+    ...
+    export default {
+        ...
+        data: function () {...},
+        mounted() {...},    // 注意添加这个逗号！
+        methods: {
+            formatted_time: function (iso_date_string) {
+                const date = new Date(iso_date_string);
+                return date.toLocaleDateString()
+            }
+        }
+    }
+</script>
+
+<style>
+    ...
+    
+    .tag {
+        padding: 2px 5px 2px 5px;
+        margin: 5px 5px 5px 0;
+        font-family: Georgia, Arial, sans-serif;
+        font-size: small;
+        background-color: #4e4e4e;
+        color: whitesmoke;
+        border-radius: 5px;
+    }
+</style>
+```
+
+标签 `tag` 和文章标题类似，用 `v-for` 循环取值即可。
+
+创建时间时 `article.created` 由于需要格式化，则用到点新东西：方法（即methods，注意看 `scripts` 中对其的定义）。方法名为 `formatted_time()` ，功能很简单，即把 iso 日期转换为人类容易理解的日期显示形式。
+
+方法 `methods` 既可以在脚本中直接调用，也可以在模板中通过标签属性或者花括号调用，非常方便。
+
+刷新页面，可以看到标签和日期都成功显示出来了。
+
+> 记得在后台中添加适当的标签数据哦。
+
+### 页眉和页脚
+
+博客网站有页眉和页脚才比较美观，因此继续添加这部分内容：
+
+```vue
+<!--   frontend/src/App.vue   -->
+
+<template>
+
+    <div id="header">
+        <h1>Welcome to cy’s world.</h1>
+        <hr>
+    </div>
+
+
+    <div v-for="..." id="articles">...</div>
+
+
+    <div id="footer">
+        <p>cymoonlight.xyz</p>
+    </div>
+
+</template>
+
+<style>
+    #app {
+        font-family: Georgia, Arial, sans-serif;
+        margin-left: 40px;
+        margin-right: 40px;
+    }
+
+    #header {
+        text-align: center;
+        margin-top: 20px;
+    }
+
+    #footer {
+        position: fixed;
+        left: 0;
+        bottom: 0;
+        height: 50px;
+        width: 100%;
+        background: whitesmoke;
+        text-align: center;
+        font-weight: bold;
+    }
+    
+    ...
+    
+</style>
+```
+
+没有新知识，唯一需要注意的就是样式中的 `#app` ，它是由 Vue 自动挂载的，因此覆盖了整个页面的元素。
+
+现在你的博客页面是这样子的：
+
+![image-20230303235546318](assets/image-20230303235546318.png)
+
+### 组件化
+
+组件化是 Vue 的核心思想之一。组件可以把网页分解成一个个的小功能，达到代码解耦及复用。
+
+在 `frontend/src/components/` 路径下分别创建 `ArticleList.vue` / `BlogHeader.vue` / `BlogFooter.vue` 三个文件，并且把我们之前在 `App.vue` 中写的代码分别搬运到对应的位置。
+
+三个文件的内容如下（注意 `export` 中的 `name` 有对应的更改）：
+
+ArticleList.vue：
+
+```vue
+<template>
+    <div v-for="article in info.results" v-bind:key="article.url" id="articles">
+        <div>
+            <span v-for="tag in article.tags" v-bind:key="tag" class="tag">
+                {{ tag }}
+            </span>
+        </div>
+
+        <div class="article-title">
+            {{ article.title }}
+        </div>
+
+        <div>{{ formatted_time(article.created) }}</div>
+    </div>
+</template>
+
+<script>
+import axios from 'axios'
+
+export default {
+    name: 'ArticleList',
+    data: function () {
+        return {
+            info: ''
+        }
+    },
+    mounted() {
+        axios
+            .get('/api/article')
+            .then(response => (this.info = response.data))
+    },
+    methods: {
+        formatted_time: function (iso_date_string) {
+            const date = new Date(iso_date_string);
+            return date.toLocaleDateString()
+        }
+    }
+}
+</script>
+
+<!-- "scoped" 使样式仅在当前组件生效 -->
+<style scoped>
+    #articles {
+        padding: 10px;
+    }
+
+    .article-title {
+        font-size: large;
+        font-weight: bolder;
+        color: black;
+        text-decoration: none;
+        padding: 5px 0 5px 0;
+    }
+
+    .tag {
+        padding: 2px 5px 2px 5px;
+        margin: 5px 5px 5px 0;
+        font-family: Georgia, Arial, sans-serif;
+        font-size: small;
+        background-color: #4e4e4e;
+        color: whitesmoke;
+        border-radius: 5px;
+    }
+</style>
+```
+
+BlogHeader.vue：
+
+```vue
+<template>
+  <div id="header">
+    <h1>Welcome to Cy's world.</h1>
+    <hr>
+  </div>
+</template>
+
+<script>
+    export default{
+        name: 'BlogHeader'
+    }
+</script>
+
+<!-- "scoped" 使样式仅在当前组件生效 -->
+<style scoped>
+  #header {
+    text-align: center;
+    margin-top: 20px;
+  }
+</style>
+```
+
+BlogFooter.vue：
+
+```vue
+<template>
+    <!-- br 标签给页脚留出位置 -->
+    <br><br><br>
+    <div id="footer">
+        <p>cymoonlight.xyz</p>
+        <a href="https://beian.miit.gov.cn/" target="_blank">吉ICP备2023001114号</a>
+    </div>
+</template>
+  
+<script>
+    export default{
+        name: 'BlogFooter'
+    }
+</script>
+
+<!-- "scoped" 使样式仅在当前组件生效 -->
+<style scoped>
+  #footer {
+    position: fixed;
+    left: 0;
+    bottom: 0;
+    height: 50px;
+    width: 100%;
+    background: whitesmoke;
+    text-align: center;
+    font-weight: bold;
+  }
+</style>
+```
+
+搬运完成后，最后将 `App.vue` 修改为如下：
+
+```vue
+<template>
+  
+  <BlogHeader/>
+
+  <ArticleList/>
+
+  <BlogFooter/>
+
+</template>
+
+<script>
+  import ArticleList from './components/ArticleList.vue';
+  import BlogFooter from './components/BlogFooter.vue';
+  import BlogHeader from './components/BlogHeader.vue';
+
+  export default {
+    name: 'App',
+    components: { BlogHeader, BlogFooter, ArticleList }
+  }
+</script>
+
+<style>
+  #app {
+    font-family: Georgia, Arial, sans-serif;
+    margin-left: 40px;
+    margin-right: 40px;
+  }
+</style>
+```
+
+刷新页面，功能虽然与修改前完全相同，但代码变得更加规整和清爽了。
+
+## 22.文章详情
+
+上一章做好了文章列表，紧接着就是实现**文章详情页面**了。
+
+从列表到详情，首当其冲的问题就是页面如何跳转。
+
+传统模式的跳转是由 Django 后端分配路由。不过本教程既然采用了前后端分离的模式，那就打算抛弃后端路由，采用**前端路由**的方式来实现页面跳转。
+
+### 准备工作
+
+首先安装 Vue 的官方前端路由库 **vue-router**：
+
+```
+> npm install vue-router@4
+
+...
+
++ vue-router@4.0.2
+added 1 package in 9.143s
+```
+
+> 笔者这里安装到的 4.1.6 版本。
+
+因为 vue-router 会用到文章的 id 作为动态地址，所以对 **Django 后端**做一点小更改：
+
+```
+# article/serializers.py
+
+class ArticleBaseSerializer(serializers.HyperlinkedModelSerializer):
+    id = serializers.IntegerField(read_only=True)
+    
+    ...
+```
+
+简单的把文章的 id 值增加到接口数据中。
+
+### Router
+
+接下来就正式开始配置前端路由了。
+
+首先把 vue-router 加载到 Vue 实例中：
+
+```
+// frontend/src/main.js
+
+...
+
+import router from './router'
+
+createApp(App).use(router).mount('#app');
+```
+
+> 和 **Vue 2** 不同的是，挂载路由实例时 **Vue 3** 采用函数式的写法，变得更加美观了。
+
+由于后续页面会越来越多，为了避免 `App.vue` 越发臃肿，因此必须优化文件结构。
+
+新建 `frontend/src/views/` 目录，用来存放现在及将来所有的页面文件。在此目录新建 `Home.vue` 文件，把之前的首页代码稍加修改搬运过来：
+
+```vue
+<!--  frontend/src/views/Home.vue  -->
+
+<template>
+
+    <BlogHeader/>
+
+    <ArticleList/>
+
+    <BlogFooter/>
+
+</template>
+
+<script>
+    import BlogHeader from '@/components/BlogHeader.vue'
+    import BlogFooter from '@/components/BlogFooter.vue'
+    import ArticleList from '@/components/ArticleList.vue'
+
+    export default {
+        name: 'Home',
+        components: {BlogHeader, BlogFooter, ArticleList}
+    }
+</script>
+```
+
+新增文章详情页面：
+
+```vue
+<!--  frontend/src/views/ArticleDetail.vue  -->
+
+<template>
+
+    <BlogHeader/>
+
+    <!--  暂时留空  -->
+
+    <BlogFooter/>
+
+</template>
+
+<script>
+    import BlogHeader from '@/components/BlogHeader.vue'
+    import BlogFooter from '@/components/BlogFooter.vue'
+
+    export default {
+        name: 'ArticleDetail',
+        components: {BlogHeader, BlogFooter}
+    }
+</script>
+```
+
+页面暂时只有个壳子，一会儿来添加实际功能。
+
+修改 `App.vue`：
+
+```vue
+<!--  frontend/src/App.vue  -->
+
+<template>
+    <router-view/>
+</template>
+
+<script>
+    export default {
+        name: 'App'
+    }
+</script>
+
+<style>
+    ...
+</style>
+```
+
+`App.vue` 文件中大部分内容都搬走了，只剩一个新增的 `<router-view>` 标签，它就是各路径所代表的页面的实际渲染位置。比如你现在在 Home 页面，那么 `<router-view>` 则渲染的是 Home 中的内容。
+
+> 一套组合拳，App.vue 看起来干净多了。
+
+这些都搞好了之后，新建 `frontend/src/router/index.js` 文件用于存放路由相关的文件，写入：
+
+```javascript
+// frontend/src/router/index.js
+
+import {createWebHistory, createRouter} from "vue-router";
+import Home from "@/views/Home.vue";
+import ArticleDetail from "@/views/ArticleDetail.vue";
+
+const routes = [
+    {
+        path: "/",
+        name: "Home",
+        component: Home,
+    },
+    {
+        path: "/article/:id",
+        name: "ArticleDetail",
+        component: ArticleDetail
+    }
+];
+
+const router = createRouter({
+    history: createWebHistory(),
+    routes,
+});
+
+export default router;
+```
+
+- 列表 `routes` 定义了所有需要挂载到路由中的路径，成员为**路径 url** 、**路径名**和**路径的 vue 对象**。详情页面的动态路由采用冒号 `:id` 的形式来定义。
+- 接着就用 `createRouter()` 创建 router。参数里的 `history` 定义具体的路由形式，`createWebHashHistory()` 为哈希模式（具体路径在 # 符号后面）；`createWebHistory()` 为 HTML5 模式（路径中没有丑陋的 # 符号），此为**推荐模式**，但是**部署时需要额外的配置**。
+
+> 各模式的详细介绍看[文档](https://next.router.vuejs.org/guide/essentials/history-mode.html)。
+
+搞定这些后，修改首页的组件代码：
+
+```vue
+<!--  frontend/src/components/ArticleList.vue  -->
+
+<template>
+    <div v-for="...">
+        
+        <!--<div class="article-title">-->
+        <!--{{ article.title }}-->
+        <!--</div>-->
+
+        <router-link
+                :to="{ name: 'ArticleDetail', params: { id: article.id }}"
+                class="article-title"
+        >
+            {{ article.title }}
+        </router-link>
+
+        ...
+    </div>
+</template>
+
+...
+```
+
+调用 vue-router 不再需要常规的 `<a>` 标签了，而是 `<router-link>` 。
+
+`:to` 属性指定了跳转位置，注意看**动态参数 id** 是如何传递的。
+
+在 Vue 中，属性前面的冒号 `:` 表示此属性被”绑定“了。”绑定“的对象可以是某个动态的参数（比如这里的 id 值），也可以是 Vue 所管理的 data，也可以是 methods。总之，看到冒号就要明白这个属性后面跟着个变量或者表达式，没有冒号就是普通的字符串。冒号 `:` 实际上是 `v-bind:` 的缩写。
+
+> 有一个小问题是由于 router 内部机制，之前给 `class="article-title"` 写的 padding 样式会失效。解决方式是将其包裹在一个 div 元素中，在此 div 上重新定义 padding。想了解做法的见 Github 仓库中的源码。
+
+Router 骨架就搭建完毕了。此时点击首页的文章标题链接后，应该就顺利跳转到一个只有页眉页脚的详情页面了。
+
+> 注意查看浏览器控制栏，有任何报错都表明代码不正确。
+
+### 编写详情页面
+
+接下来就正式写详情页面了。
+
+代码量稍稍有点多，一并贴出来：
+
+```vue
+<!--  frontend/src/views/ArticleDetail.vue  -->
+
+<template>
+
+    <BlogHeader/>
+
+    <div v-if="article !== null" class="grid-container">
+        <div>
+            <h1 id="title">{{ article.title }}</h1>
+            <p id="subtitle">
+                本文由 {{ article.author.username }} 发布于 {{ formatted_time(article.created) }}
+            </p>
+            <div v-html="article.body_html" class="article-body"></div>
+        </div>
+        <div>
+            <h3>目录</h3>
+            <div v-html="article.toc_html" class="toc"></div>
+        </div>
+    </div>
+
+    <BlogFooter/>
+
+</template>
+
+<script>
+    import BlogHeader from '@/components/BlogHeader.vue'
+    import BlogFooter from '@/components/BlogFooter.vue'
+
+    import axios from 'axios';
+
+
+    export default {
+        name: 'ArticleDetail',
+        components: {BlogHeader, BlogFooter},
+        data: function () {
+            return {
+                article: null
+            }
+        },
+        mounted() {
+            axios
+                .get('/api/article/' + this.$route.params.id)
+                .then(response => (this.article = response.data))
+        },
+        methods: {
+            formatted_time: function (iso_date_string) {
+                const date = new Date(iso_date_string);
+                return date.toLocaleDateString()
+            }
+        }
+    }
+</script>
+
+<style scoped>
+    .grid-container {
+        display: grid;
+        grid-template-columns: 3fr 1fr;
+    }
+
+
+    #title {
+        text-align: center;
+        font-size: x-large;
+    }
+
+    #subtitle {
+        text-align: center;
+        color: gray;
+        font-size: small;
+    }
+
+</style>
+
+<style>
+    .article-body p img {
+        max-width: 100%;
+        border-radius: 50px;
+        box-shadow: gray 0 0 20px;
+    }
+
+    .toc ul {
+        list-style-type: none;
+    }
+
+    .toc a {
+        color: gray;
+    }
+</style>
+```
+
+先看**模板**部分：
+
+- 在渲染文章前，逻辑控制语句 `v-if` 先确认数据是否存在，避免出现**潜在的**调用数据不存在的 bug。
+- 由于 `body_html` 、`toc_html` 都是后端渲染好的 markdown 文本，需要将其直接转换为 HTML ，所以需要用 `v-html` 标注。
+
+再看脚本：
+
+- 通过 `$route.params.id` 可以获得路由中的动态参数，以此拼接为接口向后端请求数据。
+
+最后看**样式**：
+
+- `.grid-container` 简单的给文章内容、目录划分了网格区域。
+- `<style>` 标签可以有多个，满足“分块强迫症患者”的需求。这里分两个的原因是文章内容、目录都是从原始 HTML 渲染的，不在 `scoped` 的管理范围内。
+
+大致就这些新知识点了，理解起来似乎也不困难。
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
