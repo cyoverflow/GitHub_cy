@@ -3862,55 +3862,2893 @@ Router 骨架就搭建完毕了。此时点击首页的文章标题链接后，�
 
 大致就这些新知识点了，理解起来似乎也不困难。
 
+## 23.翻页与监听
+
+上一章的详情页面跳转，用到了 vue-router 动态匹配路由的能力。而翻页功能通常不会直接改变当前路由，而是修改 url 中的查询参数来实现。它两的区别如下：
+
+```
+# 改变路由
+https://abc.com/2
+# 改变查询参数
+http://abc.com/?page=2
+```
+
+这一点微妙的区别就导致翻页的实现方式和详情页跳转不太一样。
+
+> 本章实现的是文章列表的翻页，所有内容均在 `ArticleList.vue` 中完成。
+
+### 模板
+
+模板改动如下：
+
+```vue
+<!--  frontend/src/components/ArticleList.vue  -->
 
 
+<template>
+    ...
+    
+    <div id="paginator">
+        <span v-if="is_page_exists('previous')">
+            <router-link :to="{ name: 'Home', query: { page: get_page_param('previous') } }">
+                Prev
+            </router-link>
+        </span>
+        <span class="current-page">
+            {{ get_page_param('current') }}
+        </span>
+        <span v-if="is_page_exists('next')">
+            <router-link :to="{ name: 'Home', query: { page: get_page_param('next') } }">
+                Next
+            </router-link>
+        </span>
+    </div>
+
+</template>
+
+...
+```
+
+这里面实际上只用到了两个新的方法（马上要写）：
+
+- `is_page_exists(...)` 用于确认需要跳转的页面是否存在，如果不存在那就不渲染对应的跳转标签。它的唯一参数用于确定页面的方向（当前页、上一页或下一页？）。
+- `get_page_param(...)` 用于获取页码，它的参数作用也类似，基本上就是个标记。
+
+router-link 通过 query 传递参数，看来还是挺方便的。
+
+### 脚本
+
+脚本部分是本章的核心内容，看仔细了：
+
+```vue
+<!--  frontend/src/components/ArticleList.vue  -->
+
+...
+
+<script>
+    import axios from 'axios';
+
+    export default {
+        name: ...,
+        data: ...,
+        mounted() {
+            this.get_article_data()
+        },
+        methods: {
+            formatted_time: ...,
+            // 判断页面是否存在
+            is_page_exists(direction) {
+                if (direction === 'next') {
+                    return this.info.next !== null
+                }
+                return this.info.previous !== null
+            },
+            // 获取页码
+            get_page_param: function (direction) {
+                try {
+                    let url_string;
+                    switch (direction) {
+                        case 'next':
+                            url_string = this.info.next;
+                            break;
+                        case 'previous':
+                            url_string = this.info.previous;
+                            break;
+                        default:
+                            return this.$route.query.page
+                    }
+
+                    const url = new URL(url_string);
+                    return url.searchParams.get('page')
+                }
+                catch (err) {
+                    return
+                }
+            },
+            // 获取文章列表数据
+            get_article_data: function () {
+                let url = '/api/article';
+                const page = Number(this.$route.query.page);
+                if (!isNaN(page) && (page !== 0)) {
+                    url = url + '/?page=' + page;
+                }
+
+                axios
+                    .get(url)
+                    .then(response => (this.info = response.data))
+            }
+        },
+        watch: {
+            // 监听路由是否有变化
+            $route() {
+                this.get_article_data()
+            }
+        }
+    }
+
+</script>
+
+...
+```
+
+改动内容较多，让我们逐个拆解。
+
+```
+// 判断页面是否存在
+is_page_exists(direction) {
+    if (direction === 'next') {
+        return this.info.next !== null
+    }
+    return this.info.previous !== null
+},
+...
+```
+
+这里就可以看出参数的作用了，根据参数不同确定所要查询页码的方向，返回不同的数据。
+
+```
+// 获取页码
+get_page_param: function (direction) {
+    try {
+        let url_string;
+        switch (direction) {
+            case 'next':
+                url_string = this.info.next;
+                break;
+            case 'previous':
+                url_string = this.info.previous;
+                break;
+            default:
+                return this.$route.query.page
+        }
+
+        const url = new URL(url_string);
+        return url.searchParams.get('page')
+    }
+    catch (err) {
+        return
+    }
+},
+...
+```
+
+- `try` 是为了避免潜在的取值问题（比如网速缓慢时 `info` 还未获取到数据）；一般来说 `catch` 语句应该含有对应报错的措施，教程就略过了。
+- `switch` 同样是用来控制翻页方向，有点点不同的是它默认查询了当前的页码，用于显示。
+- 根据翻页方向，构建 `URL` 对象并获取到其中的页码参数。
+
+```
+// 获取文章列表数据
+get_article_data: function () {
+    let url = '/api/article';
+    const page = Number(this.$route.query.page);
+    if (!isNaN(page) && (page !== 0)) {
+        url = url + '/?page=' + page;
+    }
+
+    axios
+        .get(url)
+        .then(response => (this.info = response.data))
+}
+```
+
+把获取数据的逻辑抽离为一个单独的方法，它根据当前的页码，向后端查询对应的数据。如果页码不存在，则返回首页。因此 `mounted()` 修改为调用此方法就可以了。
+
+```
+watch: {
+    // 监听路由是否有变化
+    $route() {
+        this.get_article_data()
+    }
+}
+...
+```
+
+这个 `watch` 就非常重要了，划重点。它的作用是监听 Vue 管理的数据，一旦发生变化就执行对应的方法。比如这里，我们已经知晓 `this.$route` 是 Vue 的路由对象了，因此将其注册到 `watch` 中，每当其变化（也就是 url 中的页码参数 `?page` 变化了）则立即根据当前页码更新对应的文章数据。
+
+你可能会问，既然首页的文章数据是在**页面初始化**时通过 `mounted()` 加载的，那为什么翻页后的数据不在 `mounted()` 中更新？很遗憾这是不行的。因为参数变化在 vue-router 看来不算是真正的**路径变化**，因此不会触发 `mounted()` 这类生命周期钩子。
+
+> 关于 watch 更多内容请见[文档](https://v3.vuejs.org/guide/computed.html#watchers)。
+
+### 样式
+
+样式改动部分如下：
+
+```vue
+<!--  frontend/src/components/ArticleList.vue  -->
+
+...
+
+<style scoped>
+    ...
+
+    #paginator {
+        text-align: center;
+        padding-top: 50px;
+    }
+
+    a {
+        color: black;
+    }
+
+    .current-page {
+        font-size: x-large;
+        font-weight: bold;
+        padding-left: 10px;
+        padding-right: 10px;
+    }
+
+</style>
+```
+
+CSS 样式通常都很直白，没有多少可讲的知识点，因此这里就简单贴出来。
+
+> 若你有更好看的外观解决方案，大胆的更改，通常样式不影响功能，只影响个人审美。
+
+## 24.搜索文章
+
+前面 Django 开发的部分已经实现了搜索接口，本章就基于此将其对应的**搜索功能**补充完整。
+
+### 准备工作
+
+为了让用户在博客的所有页面都能找到搜索框，将它放到**页眉**里是个不错的注意。
+
+修改 `BlogHeader.vue` ，将搜索框的外观放进去：
+
+```vue
+<!--  frontend/src/components/BlogHeader.vue  -->
+
+<template>
+    <div id="header">
+        <div class="grid">
+            <div></div>
+            <h1>My Drf-Vue Blog</h1>
+            <div class="search">
+                <form>
+                    <input type="text" placeholder="输入搜索内容...">
+                    <button></button>
+                </form>
+            </div>
+        </div>
+        <hr>
+    </div>
+</template>
+
+<script>
+    export default {
+        name: 'BlogHeader'
+    }
+</script>
+
+<style scoped>
+    #header {
+        text-align: center;
+        margin-top: 20px;
+    }
+
+    .grid {
+        display: grid;
+        grid-template-columns: 1fr 4fr 1fr;
+    }
+
+    .search {
+        padding-top: 22px;
+    }
+
+    /* css 来源：https://blog.csdn.net/qq_39198420/article/details/77973339*/
+    * {
+        box-sizing: border-box;
+    }
+
+    form {
+        position: relative;
+        width: 200px;
+        margin: 0 auto;
+    }
+
+    input, button {
+        border: none;
+        outline: none;
+    }
+
+    input {
+        width: 100%;
+        height: 35px;
+        padding-left: 13px;
+        padding-right: 46px;
+    }
+
+    button {
+        height: 35px;
+        width: 35px;
+        cursor: pointer;
+        position: absolute;
+    }
+
+    .search input {
+        border: 2px solid gray;
+        border-radius: 5px;
+        background: transparent;
+        top: 0;
+        right: 0;
+    }
+
+    .search button {
+        background: gray;
+        border-radius: 0 5px 5px 0;
+        width: 45px;
+        top: 0;
+        right: 0;
+    }
+
+    .search button:before {
+        content: "搜索";
+        font-size: 13px;
+        color: white;
+    }
+</style>
+```
+
+代码大部分是在定义搜索框的外观，有兴趣的同学自行研究。
+
+现在你的博客标题的右边应该就出现一个像模像样的搜索框了（无功能）。
+
+接下来开始正式编写搜索的逻辑。
+
+### 编程式导航
+
+为了让搜索框发挥功能，继续修改 `BlogHeader.vue` ：
+
+```vue
+<!--  frontend/src/components/BlogHeader.vue  -->
+
+<template>
+    ...
+    <div class="search">
+        <form>
+            <input v-model="searchText" type="text" placeholder="输入搜索内容...">
+            <button v-on:click.prevent="searchArticles"></button>
+        </form>
+    </div>
+    ...
+</template>
+
+<script>
+    export default {
+        name: 'BlogHeader',
+        data: function () {
+            return {
+                searchText: ''
+            }
+        },
+        methods: {
+            searchArticles() {
+                const text = this.searchText.trim();
+                if (text.charAt(0) !== '') {
+                    this.$router.push({name: 'Home', query: { search: text }})
+                }
+            }
+        }
+    }
+</script>
+
+...
+```
+
+- `v-model` 指令可以在表单控件上创建**双向数据绑定**。具体来说，就是上面的 `<input>` 中的数据和 Vue 管理的 `searchText` 数据绑定在一起了，其中一个发生变化，另一个也会改变。
+- `v-on:click` 绑定了按钮的**鼠标点击事件**，即点击则触发 `searchArticles()` 方法。`.prevent` 用于阻止按钮原本的表单提交功能。
+
+前面章节我们用 `<router-link>` 标签实现了路由跳转。在必要时候路由跳转也可以通过脚本来**动态实现**，也就是上面代码的 `this.$router.push(...)` 了。注意 `this.$route` 和 `this.$router` ，前者代表路径对象，后者代表路由器对象。
+
+总之，点击按钮触发 `searchArticles()` ，然后此方法将 `searchText` 作为参数跳转到新的路径。
+
+### 功能实现
+
+页面跳转实现了，但是因为前面章节把 `get_article_data()` 方法中的 url 写死为 `'/api/article'` 了，所以跳转之后还不能够根据路径的中 `search` 参数展示筛选后的数据。因此要**换个战场**，在 `ArticleList.vue` 里进行修改（主要是 Javascript 部分）。
+
+旧的翻页 `<router-link>` 仅考虑了路径参数中的 `page` 值。为了在翻页后取得包括 `page` 和 `search` 的正确路径，新写一个方法 `get_path()`：
+
+```vue
+<!--  frontend/src/components/ArticleList.vue  -->
+
+...
+
+<script>
+    ...
+
+    export default {
+        ...
+        methods: {
+            ...
+            get_path: function (direction) {
+                let url = '';
+
+                try {
+                    switch (direction) {
+                        case 'next':
+                            if (this.info.next !== undefined) {
+                                url += (new URL(this.info.next)).search
+                            }
+                            break;
+                        case 'previous':
+                            if (this.info.previous !== undefined) {
+                                url += (new URL(this.info.previous)).search
+                            }
+                            break;
+                    }
+                }
+                catch { return url }
+
+                return url
+            }
+        },
+        ...
+    }
+
+</script>
+
+...
+```
+
+如果下一页的路径存在，那么则返回其带参数的路径，否则就返回无任何参数的首页路径。
+
+有了 `get_path()` 获取到路径后，还需要将路径用到请求数据的接口里。
+
+修改 `get_article_data()` 方法，如下面这样：
+
+```vue
+<!--  frontend/src/components/ArticleList.vue  -->
+
+...
+
+<script>
+    ...
+
+    export default {
+        ...
+        methods: {
+            ...
+            get_article_data: function () {
+                let url = '/api/article';
+
+                let params = new URLSearchParams();
+                // 注意 appendIfExists 方法是原生没有的
+                // 原生只有 append 方法，但此方法不能判断值是否存在
+                params.appendIfExists('page', this.$route.query.page);
+                params.appendIfExists('search', this.$route.query.search);
+
+                const paramsString = params.toString();
+                if (paramsString.charAt(0) !== '') {
+                    url += '/?' + paramsString
+                }
+
+                axios
+                    .get(url)
+                    .then(response => (this.info = response.data))
+            }
+        },
+        ...
+    }
+
+</script>
+
+...
+```
+
+这里的代码抛弃了之前用的**字符串拼接**的方式，改为专门用于处理路径参数的 `URLSearchParams()` 对象。为了将路径中已有的参数添加到 `URLSearchParams()` 中，可以用其本身的 `append()` 方法，但此方法不能**判断值是否存在**，从而获得类似 `http://localhost:8080/?page=undefined` 这种错误的路径。
+
+解决方法可以在 `methods` 里写一个 `appendIfExists()` 方法，调用它来排除错误路径。还有一种方法是由于 JavaScript 是基于**原型链**的语言，因此可以通过原型链将此方法添加到已有对象中（包括内置原生对象），以扩展此对象的功能。
+
+具体实施方法就是在 `main.js` 中写入：
+
+```js
+// frontend/src/main.js
+
+import ...
+
+URLSearchParams.prototype.appendIfExists = function (key, value) {
+    if (value !== null && value !== undefined) {
+        this.append(key, value)
+    }
+};
+
+createApp(App)...;
+```
+
+因为 `main.js` 在 Vue 初始化时必然会执行，如此一来`URLSearchParams` 对象就有了这个 `appendIfExists()` 了。
+
+> **警告**：以上示例仅供参考。请谨慎扩展原生类型，尤其是如果你的代码将被其他人使用，这可能导致意外的代码行为。建议在扩展方法的名称前加上一些标识符，以便潜在用户可以区分你注入的方法和原生的方法。
+>
+> 关于继承、原型链的解释，详见[原型链](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Inheritance_and_the_prototype_chain)。关于 URLSearchParams，详见[URLSearchParams](https://developer.mozilla.org/en-US/docs/Web/API/URLSearchParams)。
+
+把这些脚本写好后，就可以修改路由的**模板**了：
+
+```vue
+<!--  frontend/src/components/ArticleList.vue  -->
+
+<template>
+    ...
 
 
+    <div id="paginator">
+        <span v-if="...">
+            <router-link :to="get_path('previous')">
+                Prev
+            </router-link>
+        </span>
+        <span class="...e">
+            ...
+        </span>
+        <span v-if="...">
+            <router-link :to="get_path('next')">
+                Next
+            </router-link>
+        </span>
+    </div>
+
+</template>
+
+...
+```
+
+`:to` 是 `v-bind:to` 的简写，意思是“将 `to` 属性和 `get_path(...)` 的返回值保持一致”。如果不需要这种响应式行为，也可以 `to="/abc"` 这样直接赋值给属性。
+
+> `v-bind` 的用法详见[文档](https://cn.vuejs.org/v2/guide/index.html)。
+
+## 25.用户注册
+
+前面把文章的 GET 请求实现得七七八八了。在继续开发发表文章、更新、删除之前，让我们换个口味，先实现用户管理。
+
+本章搞定用户注册。
+
+### 注册页面
+
+新建 `frontend/src/views/Login.vue` 文件作为用户注册（以及登录）的页面，并写入代码：
+
+```vue
+<!-- frontend/src/views/Login.vue -->
+
+<template>
+
+    <BlogHeader/>
+
+    <div id="grid">
+        <div id="signup">
+            <h3>注册账号</h3>
+            <form>
+                <div class="form-elem">
+                    <span>账号：</span> 
+                    <input v-model="signupName" type="text" placeholder="输入用户名">
+                </div>
+                <div class="form-elem">
+                    <span>密码：</span> 
+                    <input v-model="signupPwd" type="password" placeholder="输入密码">
+                </div>
+                <div class="form-elem">
+                    <button v-on:click.prevent="signup">提交</button>
+                </div>
+            </form>
+        </div>
+
+        <div>
+            <!-- 留给后面章节的用户登录 -->
+        </div>
+    </div>
+
+    <BlogFooter/>
+
+</template>
+
+<script>
+    import axios from 'axios';
+    import BlogHeader from '@/components/BlogHeader.vue'
+    import BlogFooter from '@/components/BlogFooter.vue'
+
+    export default {
+        name: 'Login',
+        components: {BlogHeader, BlogFooter},
+        data: function () {
+            return {
+                signupName: '',
+                signupPwd: '',
+                signupResponse: null,
+            }
+        },
+        methods: {
+            signup() {
+                const that = this;
+                axios
+                    .post('/api/user/', {
+                        username: this.signupName,
+                        password: this.signupPwd,
+                    })
+                    .then(function (response) {
+                        that.signupResponse = response.data;
+                        alert('用户注册成功，快去登录吧！');
+                    })
+                    .catch(function (error) {
+                        alert(error.message);
+                        // Handling Error here...
+                        // https://github.com/axios/axios#handling-errors
+                    });
+            },
+        }
+    }
+</script>
+
+<style scoped>
+    #grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+    }
+    #signup {
+        text-align: center;
+    }
+    .form-elem {
+        padding: 10px;
+    }
+    input {
+        height: 25px;
+        padding-left: 10px;
+    }
+    button {
+        height: 35px;
+        cursor: pointer;
+        border: none;
+        outline: none;
+        background: gray;
+        color: whitesmoke;
+        border-radius: 5px;
+        width: 60px;
+    }
+</style>
+```
+
+代码看起来有点多，但其实**没有新知识**；功能上就是将表单中的用户名和密码 `post` 到 `/api/user/` 接口，若创建成功则提醒用户前往登录，失败则将提示信息显示出来。
+
+> 如果注册失败，教程只是简单的弹出提示框，实际的博客项目应该优化为更加友好的方式。
+
+唯一需要注意的是，`singup()` 方法第一行的 `const that = this`，它是为了 `that.signupResponse = response.data` 这里的调用而存在的。为什么要采取这种拐弯抹角的方式，而不直接调用 `this` ？这是因为在 JavaScript 中，**this是使用call方法调用函数时传递的第一个参数，它可以在函数调用时修改，在函数没有调用的时候，this的值无法确定。**直观来讲，如果这里的 `.then()` 方法里直接使用 `this` ，结果就是 `this` 未定义，语句报错。
+
+那为什么之前的**文章列表接口没有这个问题**？这是因为当时用了箭头函数，其内部的 `this` 是遵循词法作用域，总是指向外层调用者 Vue 实例。
+
+> 有关箭头函数和 this 的恩怨情仇，可以读读[这篇文章](https://juejin.cn/post/6844903573428371464)。
+
+### 收尾工作
+
+视图有了，接下来就是增加路由和入口等修修补补的工作了。
+
+在 `index.js` 中添加注册路由：
+
+```js
+// frontend/src/router/index.js
+
+...
+const routes = [
+    ...
+    {
+        ...
+    },
+    // 修改 Javascript 代码时
+    // 不要忘记在同级元素后加上逗号
+    // 否则将报错
+    // 后面章节类似
+    {
+        path: "/login",
+        name: "Login",
+        component: Login
+    }
+];
+...
+```
+
+在 `BlogHeader.vue` 中添加入口：
+
+```vue
+<!-- frontend/src/components/BlogHeader.vue -->
+
+<template>
+    <div id="header">
+        ...
+        <hr>
+        <div class="login">
+            <router-link to="/login" class="login-link">登录</router-link>
+        </div>
+    </div>
+</template>
+
+...
+
+<style scoped>
+    .login-link {
+        color: black;
+    }
+
+    .login {
+        text-align: right;
+        padding-right: 5px;
+    }
+</style>
+```
+
+## 26.用户登录
+
+上一章做好了用户注册，本章来完成**用户登录**功能。
+
+由于后端的认证方式为 JWT 认证，即后端返回给前端一个 token，前端在请求的 Header 中附带此 token 令牌来证明身份。这就有个不可避免的问题：**token 保存在前端的什么地方？**
+
+本教程将采用 token 保存在 `localStorage` 中，实现登录功能。
+
+> 此问题有广泛的讨论，因为 token 无论是保存在 localStorage、sessionStorage 或者 cookie 中均存在某些情况下被盗取的可能。网络安全不是本教程重点关注的问题，因此为了入门平滑将 token 保存于 localStorage 中，更深入的对安全的讨论请见 [HASURA](https://hasura.io/blog/best-practices-of-using-jwt-with-graphql/)、[MDN](https://developer.mozilla.org/zh-CN/docs/Web/API/Document/cookie)以及[Stackoverflow](https://stackoverflow.com/questions/26340275/where-to-save-a-jwt-in-a-browser-based-application-and-how-to-use-it)。有关 localStorage 的入门讲解[看这里](https://developer.mozilla.org/zh-CN/docs/Web/API/Window/localStorage)。
+
+### 准备工作
+
+为了便于测试，修改后端 `setting.py` 配置，将 token 的过期时间设置短一些：
+
+```python
+# blog、setting.py
+
+...
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=1),
+    ...
+}
+```
+
+### 登录页面
+
+上一章写 `Login.vue` 时已经给登录的表单留好了位置，修改对应位置的代码：
+
+```vue
+<!-- frontend/src/views/Login.vue -->
+
+<template>
+    ...
+    <div id="grid">
+        ...
+
+        <div id="signin">
+            <h3>登录账号</h3>
+            <form>
+                <div class="form-elem">
+                    <span>账号：</span>
+                    <input v-model="signinName" type="text" placeholder="输入用户名">
+                </div>
+
+                <div class="form-elem">
+                    <span>密码：</span>
+                    <input v-model="signinPwd" type="password" placeholder="输入密码">
+                </div>
+
+                <div class="form-elem">
+                    <button v-on:click.prevent="signin">登录</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    ...
+</template>
+
+<script>
+    ...
+    export default {
+        name: ...,
+        components: {...},
+        data: function () {
+            return {
+                ...
+                signinName: '',
+                signinPwd: '',
+            }
+        },
+        methods: {
+            signup() {...},
+            signin() {
+                const that = this;
+                axios
+                    .post('/api/token/', {
+                        username: that.signinName,
+                        password: that.signinPwd,
+                    })
+                    .then(function (response) {
+                        const storage = localStorage;
+                        // Date.parse(...) 返回1970年1月1日UTC以来的毫秒数
+                        // Token 被设置为1分钟，因此这里加上60000毫秒
+                        const expiredTime = Date.parse(response.headers.date) + 60000;
+                    	  // 设置 localStorage
+                        storage.setItem('access.myblog', response.data.access);
+                        storage.setItem('refresh.myblog', response.data.refresh);
+                        storage.setItem('expiredTime.myblog', expiredTime);
+                        storage.setItem('username.myblog', that.signinName);
+                        // 路由跳转
+                        // 登录成功后回到博客首页
+                        that.$router.push({name: 'Home'});
+                    })
+                    // 读者自行补充错误处理
+                    // .catch(...)
+            },
+        }
+    }
+</script>
+
+<style scoped>
+    #signin {
+        text-align: center;
+    }
+    ...
+</style>
+```
+
+回顾一下向后端请求 token 的返回值：
+
+```
+{
+    "refresh": "eyJ0eXA...nHbY",
+    "access": "eyJ0eXAi...G0Uk"
+}
+```
+
+`access` 是真正用于用户身份认证的令牌。但此令牌有效时间通常比较短（安全考虑），过期后可用 `refresh` 令牌重新获得一个令牌。
+
+再回过头来看这个登录用的 `signin()` 方法，它首先发送请求申请 token，成功后则把令牌、过期时间和用户名一并保存到 localStorage 中供后续使用，并将跳转到首页。
+
+> expiredTime 为1970年1月1日至过期时间的毫秒数，60000 即代表1分钟；此数值需要与令牌有效期保持一致。
+
+### 显示登陆状态
+
+为了让用户在任意页面都知道自己是否处于登录状态，登录显示一般位于页眉中。
+
+修改 `BlogHeader.vue` 如下：
+
+```vue
+<!-- frontend/src/compnents/Blogheader.vue -->
+
+<template>
+    <div id="header">
+        ...
+        <hr>
+        <div class="login">
+            <div v-if="hasLogin">
+                欢迎, {{username}}!
+            </div>
+            <div v-else>
+                <router-link to="/login" class="login-link">登录</router-link>
+            </div>
+        </div>
+    </div>
+</template>
+
+<script>
+    import axios from 'axios';
+
+    export default {
+        name: ...,
+        data: function () {
+            return {
+                searchText: '',
+                username: '',
+                hasLogin: false,
+            }
+        },
+        methods: {...},
+        mounted() {
+            const that = this;
+            const storage = localStorage;
+            // 过期时间
+            const expiredTime = Number(storage.getItem('expiredTime.myblog'));
+            // 当前时间
+            const current = (new Date()).getTime();
+            // 刷新令牌
+            const refreshToken = storage.getItem('refresh.myblog');
+            // 用户名
+            that.username = storage.getItem('username.myblog');
+
+            // 初始 token 未过期
+            if (expiredTime > current) {
+                that.hasLogin = true;
+            }
+            // 初始 token 过期
+            // 如果有刷新令牌则申请新的token
+            else if (refreshToken !== null) {
+                axios
+                    .post('/api/token/refresh/', {
+                        refresh: refreshToken,
+                    })
+                    .then(function (response) {
+                        const nextExpiredTime = Date.parse(response.headers.date) + 60000;
+
+                        storage.setItem('access.myblog', response.data.access);
+                        storage.setItem('expiredTime.myblog', nextExpiredTime);
+                        storage.removeItem('refresh.myblog');
+
+                        that.hasLogin = true;
+                    })
+                    .catch(function () {
+                        // .clear() 清空当前域名下所有的值
+                        // 慎用
+                        storage.clear();
+                        that.hasLogin = false;
+                    })
+            }
+            // 无任何有效 token
+            else {
+                storage.clear();
+                that.hasLogin = false;
+            }
+        }
+    }
+</script>
+
+...
+```
+
+主要的改动就是 `.mounted()` 方法，在它里面一共干了**三件事**：
+
+- 检查 localStorage 中保存的令牌过期时间，如果未过期则确认用户已登录。
+- 若令牌已过期，检查是否能刷新获取令牌，若成功则确认用户已登录并更新 localStorage 的状态。
+- 其他任何情况下均认为用户未登录，并清空 localStorage。
+
+这种方式没有在每次请求中向后端确认用户是否登录，而是根据本地保存的信息进行判断**（当请求“无害”时）**，算是减轻后端压力的取巧办法。
+
+## 27.资料更新与异步
+
+上一章用户可以登录了，本章接着完成用户资料的**更新和登出**。
+
+### 组件化
+
+前面做搜索功能时，为了美观我们定义了按钮的样式。正巧用户更新也需要按钮，为了避免样式相互冲突，先做点准备工作：**把搜索框组件化**。
+
+> 组件化的方法前面已经讲过了，再来一遍加深印象。
+
+新建一个 `SearchButton.vue` 文件，把 `BlogHeader.vue` 中与搜索相关的内容全部搬运过来：
+
+```vue
+<!-- frontend/src/components/SearchButton.vue -->
+
+<template>
+    <div class="search">
+        <form>
+            <input v-model="searchText" type="text" placeholder="输入搜索内容...">
+            <button v-on:click.prevent="searchArticles"></button>
+        </form>
+    </div>
+</template>
+
+<script>
+    export default {
+        name: 'SearchButton',
+        data: function () {
+            return {
+                searchText: '',
+            }
+        },
+        methods: {
+            searchArticles() {...}
+        },
+    }
+</script>
 
 
+<style scoped>
+    /* 相关样式全部搬运到这里 */
+    .search {...}
+    * {...}
+    form {...}
+    input, button {...}
+    input {...}
+    button {...}
+    .search input {...}
+    .search button {...}
+    .search button:before {...}
+</style>
+```
+
+注意这里的搬运是有些小改动的，比如组件导出的名字，不改就乱套了。
+
+接着把 `BlogHeader.vue` 对应搜索的部分删掉（特别是样式）：
+
+```vue
+<!-- frontend/src/components/BlogHeader.vue -->
+
+<template>
+    <div id="header">
+        <div class="grid">
+            ...
+            <!--引入搜索框组件-->
+            <SearchButton/>
+        </div>
+        ...
+    </div>
+</template>
+
+<script>
+    import axios from 'axios';
+    import SearchButton from '@/components/SearchButton.vue'
+
+    export default {
+        name: 'BlogHeader',
+        // 定义组件
+        components: {SearchButton},
+        data: function () {
+            return {
+                username: '',
+                hasLogin: false,
+                // searchText 变量删除
+            }
+        },
+        // methods 删除掉
+        mounted() {...}
+        }
+    }
+</script>
+
+<style scoped>
+    /*与搜索框相关的 css 删除*/
+    ...
+</style>
+```
+
+同样也记得把用不到的库、组件、名称都修改正确。
+
+完成后刷新页面，确保功能正常就 OK。
+
+### 异步与重构
+
+用户资料的更改、删除最好有个单独的页面，这就带来两个很头疼的问题：
+
+- 用户资料页面涉及 POST/PATCH 等操作，毫无疑问需要验证用户的身份和 token 有效性；巧的是前面写的 `BlogHeader.vue` 也有类似的需求。因此需要将**验证代码**重构为一个单独的函数，供大家调用。
+- 把**验证代码**抽象为单独的函数后，由于 `axios` 发送的请求是异步的，所以要将此处的异步代码转换为同步代码，否则 localStorage 的存取顺序会因为网速的快慢而不可预测，带来潜在 bug。
+
+综合上述两条，让我们先来处理这最麻烦的部分。
+
+新建路径及文件 `frontend/src/utils/authorization.js` ，写入代码：
+
+```js
+// frontend/src/utils/authorization.js
+
+import axios from 'axios';
+
+async function authorization() {
+    const storage = localStorage;
+
+    let hasLogin = false;
+    let username = storage.getItem('username.myblog');
+
+    const expiredTime = Number(storage.getItem('expiredTime.myblog'));
+    const current = (new Date()).getTime();
+    const refreshToken = storage.getItem('refresh.myblog');
+
+    // 初始 token 未过期
+    if (expiredTime > current) {
+        hasLogin = true;
+        console.log('authorization access')
+    }
+    // 初始 token 过期
+    // 申请刷新 token
+    else if (refreshToken !== null) {
+        try {
+            let response = await axios.post('/api/token/refresh/', {refresh: refreshToken});
+
+            const nextExpiredTime = Date.parse(response.headers.date) + 60000;
+
+            storage.setItem('access.myblog', response.data.access);
+            storage.setItem('expiredTime.myblog', nextExpiredTime);
+            storage.removeItem('refresh.myblog');
+
+            hasLogin = true;
+
+            console.log('authorization refresh')
+        }
+        catch (err) {
+            storage.clear();
+            hasLogin = false;
+
+            console.log('authorization err')
+        }
+    }
+    // 无任何有效 token
+    else {
+        storage.clear();
+        hasLogin = false;
+        console.log('authorization exp')
+    }
+
+    console.log('authorization done');
+
+    return [hasLogin, username]
+}
+
+export default authorization;
+```
+
+看起来和之前写的验证代码很像，但是有两个非常重要的区别：
+
+- `async/await` ： `async` 表示函数里含有异步操作，`await` 表示紧跟在后面的表达式需要等待结果。`await` 关键字只能用在 `async` 函数中，并且由于它返回的 `Promise` 对象运行的结果可能是 `rejected` ，所以最好放到 `try...catch` 语句中。
+- `async` 函数返回的不再是 `return` 后面的数据，而是包含数据的 `Promise` 对象，因此调用它的位置需要改为 `Promise.then().catch()` 进行异常处理。（有点像 `axios.then().catch()`)
+
+> Promise 对新手来说稍麻烦，篇幅有限不展开讲原理，请善用搜索。
+
+### 用户中心
+
+封装好身份验证的函数后，用户中心这个页面相对就好弄了。
+
+新建 `frontend/src/views/UserCenter.vue` ，写入代码：
+
+```vue
+<!-- frontend/src/views/UserCenter.vue -->
+
+<template>
+    <BlogHeader/>
+    <div id="user-center">
+        <h3>更新资料信息</h3>
+        <form>
+            <div class="form-elem">
+                <span>用户名：</span>
+                <input v-model="username" type="text" placeholder="输入用户名">
+            </div>
+
+            <div class="form-elem">
+                <span>新密码：</span>
+                <input v-model="password" type="password" placeholder="输入密码">
+            </div>
 
 
+            <div class="form-elem">
+                <button v-on:click.prevent="changeInfo">更新</button>
+            </div>
+        </form>
+    </div>
+    <BlogFooter/>
+</template>
+
+<script>
+    import axios from 'axios';
+    import BlogHeader from '@/components/BlogHeader.vue'
+    import BlogFooter from '@/components/BlogFooter.vue'
+
+    import authorization from '@/utils/authorization';
+
+    const storage = localStorage;
+
+    export default {
+        name: 'UserCenter',
+        components: {BlogHeader, BlogFooter},
+        data: function () {
+            return {
+                username: '',
+                password: '',
+                token: '',
+            }
+        },
+        mounted() {
+            this.username = storage.getItem('username.myblog');
+        },
+        methods: {
+            changeInfo() {
+                const that = this;
+                // 验证登录状态
+                authorization()
+                    .then(function (response) {
+                        // 检查登录状态
+                        // 若登录已过期则不执行后续操作
+                        if (!response[0]) {
+                            alert('登录已过期，请重新登录');
+                            return
+                        }
+                        console.log('change info start');
+                        // 密码不能小于 6 位
+                        if (that.password.length > 0 && that.password.length < 6) {
+                            alert('Password too short.');
+                            return
+                        }
+                        // 旧的 username 用于向接口发送请求
+                        const oldName = storage.getItem('username.myblog');
+                        // 获取已填写的表单数据
+                        let data = {};
+                        if (that.username !== '') {
+                            data.username = that.username
+                        }
+                        if (that.password !== '') {
+                            data.password = that.password
+                        }
+                        // 获取令牌
+                        that.token = storage.getItem('access.myblog');
+                        // 发送更新数据到接口
+                        axios
+                            .patch(
+                                '/api/user/' + oldName + '/',
+                                data,
+                                {
+                                    headers: {Authorization: 'Bearer ' + that.token}
+                                }
+                            )
+                            .then(function (response) {
+                                const name = response.data.username;
+                                storage.setItem('username.myblog', name);
+                                that.$router.push({name: 'UserCenter', params: {username: name}});
+                            })
+                    });
+            }
+        },
+    }
+</script>
+
+<style scoped>
+    #user-center {
+        text-align: center;
+    }
+    .form-elem {
+        padding: 10px;
+    }
+    input {
+        height: 25px;
+        padding-left: 10px;
+    }
+    button {
+        height: 35px;
+        cursor: pointer;
+        border: none;
+        outline: none;
+        background: gray;
+        color: whitesmoke;
+        border-radius: 5px;
+        width: 200px;
+    }
+</style>
+```
+
+核心就是脚本里的 `authorization()` 函数，这就是我们刚封装的验证函数嘛。在它的 `.then()` 里，干了下面这两件事情：
+
+- 检查函数返回的数据，如果登录失效，或者密码太短，则拒绝执行后面的逻辑。
+- 拿到用户填写的表单数据，并取出保存在本地的令牌，发送到后端接口更新用户数据。
+
+模板和样式都没有新内容，读者捎带看一下就可以。
+
+### 收尾工作
+
+由于验证身份有了独立的函数，因此页眉的验证代码可以都删了，调用它即可。此外，用户中心的入口可以作为用户提示语的下拉框，就像大部分平台做的那样。
+
+修改 `BlogHeader.vue` 的代码：
+
+```vue
+<!-- frontend/src/components/BlogHeader.vue -->
+
+<template>
+    <div id="header">
+        ...
+        <hr>
+        <div class="login">
+            <div v-if="hasLogin">
+                <div class="dropdown">
+                    <button class="dropbtn">欢迎, {{username}}!</button>
+                    <div class="dropdown-content">
+                        <router-link :to="{ name: 'UserCenter', params: { username: username }}">用户中心</router-link>
+                    </div>
+                </div>
+            </div>
+            <div v-else>...</div>
+        </div>
+    </div>
+</template>
+
+<script>
+    import SearchButton from '@/components/SearchButton.vue';
+    import authorization from '@/utils/authorization';
+
+    export default {
+        name: 'BlogHeader',
+        components: {SearchButton},
+        data: function () {
+            return {
+                username: '',
+                hasLogin: false,
+            }
+        },
+        mounted() {
+            // 千言万语汇成此句
+            authorization().then((data) => [this.hasLogin, this.username] = data);
+        }
+    }
+</script>
+
+<style scoped>
+    /* 样式来源: https://www.runoob.com/css/css-dropdowns.html* /
+    /* 下拉按钮样式 */
+    .dropbtn {
+        background-color: mediumslateblue;
+        color: white;
+        padding: 8px 8px 30px 8px ;
+        font-size: 16px;
+        border: none;
+        cursor: pointer;
+        height: 16px;
+        border-radius: 5px;
+    }
+    /* 容器 <div> - 需要定位下拉内容 */
+    .dropdown {
+        position: relative;
+        display: inline-block;
+    }
+    /* 下拉内容 (默认隐藏) */
+    .dropdown-content {
+        display: none;
+        position: absolute;
+        background-color: #f9f9f9;
+        min-width: 120px;
+        box-shadow: 0 8px 16px 0 rgba(0, 0, 0, 0.2);
+        text-align: center;
+    }
+    /* 下拉菜单的链接 */
+    .dropdown-content a {
+        color: black;
+        padding: 12px 16px;
+        text-decoration: none;
+        display: block;
+    }
+    /* 鼠标移上去后修改下拉菜单链接颜色 */
+    .dropdown-content a:hover {
+        background-color: #f1f1f1
+    }
+    /* 在鼠标移上去后显示下拉菜单 */
+    .dropdown:hover .dropdown-content {
+        display: block;
+    }
+    /* 当下拉内容显示后修改下拉按钮的背景颜色 */
+    .dropdown:hover .dropbtn {
+        background-color: darkslateblue;
+    }
+</style>
+
+<style scoped>
+    /* 旧的样式 */
+    ...
+</style>
+```
+
+- 将之前写的验证代码全部删除，变为调用 `authorization()` 函数。
+- 将欢迎词替换为下拉框，选项里包含用户中心的入口。
+
+最后把路由注册到 `index.js`：
+
+```js
+// frontend/src/router/index.js
+
+...
+import UserCenter from "@/views/UserCenter.vue";
+
+const routes = [
+    ...
+    {
+        path: "/user/:username",
+        name: "UserCenter",
+        component: UserCenter
+    },
+];
+```
+
+## 28.资料删除与组件通信
+
+在实现**用户资料的删除**之前，先解决上一章的遗留问题：**更新用户资料信息后，右上角欢迎词依然显示旧的用户名，必须强制刷新页面后才显示更新后的用户名**。
+
+有的读者不理解，更新资料时已经通过 `$router.push()` 刷新过页面了，为什么路径、表单数据都更新了，唯独欢迎词没有更新？原因在于 Vue 太**高效**了。因为 `$router` 跳转的是同一个页面，那么 Vue 就**只会**重新渲染此页面发生变化的组件，而那些 Vue 觉得没变化的组件就不再重新渲染。很显然 Vue 觉得页眉里的数据**没发生变化**，页眉的生命周期钩子 `mounted()` 没执行，欢迎词也就未更新了。
+
+> Vue 查看的仅它自己管理的数据。显然 localStorage 里保存的登录标志变量不在此列。
+
+我们用两种方式来解决此小问题。
+
+### 组件通信
+
+Vue 是基于组件的一套系统，如果组件和组件之间无法**通信**或**传递数据**，那无疑是没办法接受的。Vue 中父组件向子组件传递信息的方式就是 `Props` 了，接下来就用 Props 来“拐弯抹角”的实现欢迎词更新的功能。
+
+首先修改 `UserCenter.vue`：
+
+```vue
+<!-- frontend/src/views/UserCenter.vue -->
+
+<template>
+    <BlogHeader :welcome-name="welcomeName" />
+    ...
+</template>
+
+<script>
+    ...
+    export default {
+        ...
+        data: function () {
+            return {
+                ...
+                // 新增这里
+                welcomeName: '',
+            }
+        },
+        mounted() {
+            ...
+            // 新增这里
+            this.welcomeName = storage.getItem('username.myblog');
+        },
+        methods: {
+            changeInfo() {
+                ...
+                authorization()
+                    .then(function (response) {
+                        ...
+                        axios
+                            .patch(...)
+                            .then(function (response) {
+                                ...
+                                // 新增这里
+                                that.welcomeName = name;
+                            })
+                    });
+            }
+        },
+    }
+</script>
+...
+```
+
+可以看到组件是可以带参数的（也就是 Props 了），这个参数会传递到**子组件**中使用。
+
+> 又一次看到了 `:welcome-name` 这种带冒号的写法了。重申一次，冒号表示这个属性被双向绑定到了 Vue 所管理的数据或表达式上。如果你只是传递一个固定值（如字符串），那么去掉冒号即可。`:` 就是 `v-bind:` 的简写形式。
+
+然后修改 `BlogHeader.vue` ：
+
+```vue
+<!-- frontend/src/components/BlogHeader.vue -->
+
+<template>
+    <div id="header">
+        ...
+        <div ...>
+            <div ...>
+                <div class="dropdown">
+                    <button class="dropbtn">欢迎, {{name}}!</button>
+                    ...
+                </div>
+            </div>
+            ...
+        </div>
+    </div>
+</template>
+
+<script>
+    ...
+    export default {
+        ...
+        props: ['welcomeName'],
+        computed: {
+            name() {
+                return (this.welcomeName !== undefined) ? this.welcomeName : this.username
+            }
+        },
+        ...
+    }
+</script>
+```
+
+需要注意的有两点。
+
+由于 HTML 对**大小写不敏感**，所以 Vue 规定 camelCase (驼峰命名法) 的 prop 名需要使用其等价的 kebab-case (短横线分隔命名) 命名。所以就有了模板中是 `welcome-name` 而脚本中是 `welcomeName` ，它两是对应的。
+
+出现了一个新家伙：`computed` 计算属性。乍一看这玩意儿和 `methods` 没啥区别，但实际上区别大了：
+
+- **计算属性是基于它们的响应式依赖进行缓存的**。只在相关响应式依赖发生改变时它们才会重新求值。这就意味着只要与它有关系的参数没有发生改变，多次访问此计算属性会立即返回之前的计算结果，而不必再次执行函数。相比之下，每当触发重新渲染时，**方法**将**总会**再次执行函数。
+- **计算属性默认不接受参数，并且不能产生副作用。**也就是说，在它的执行过程中不能改变任何 Vue 所管理的数据，否则将会报错。计算属性是依赖数据工作的，副作用会使代码不可预测（鸡生蛋，蛋生鸡）。
+
+一般来说，能用 `computed` 就尽量用它，不能的再考虑 `methods` ，算是用空间（缓存）换取时间（效率）吧。
+
+测试看看，几行代码就修补了上一章的 bug。
+
+### 事件
+
+你可能会问，既然父组件可以向子组件传递数据，那能不能子组件返过来传递 Props 给父组件呢？**很遗憾这是不行的。**
+
+所有的 prop 都使得其父子 prop 之间形成了一个**单向下行绑定**：父级 prop 的更新会向下流动到子组件中，但是反过来则不行。这样会防止从子组件意外变更父级组件的状态，从而导致你的应用的数据流向难以理解。
+
+额外的，每次父级组件发生变更时，子组件中所有的 prop 都将会刷新为最新的值。这意味着你**不**应该在一个子组件内部改变 prop。如果你这样做了，Vue 会在浏览器的控制台中发出警告。
+
+那 Vue 的子组件能不能给父组件传递信息？**能，采用的是事件的形式。**
+
+看看[官网的例子](https://cn.vuejs.org/v2/api/#vm-emit)：
+
+```vue
+// ---js---
+
+Vue.component('welcome-button', {
+  template: `
+    <button v-on:click="$emit('welcome')">
+      Click me to be welcomed
+    </button>
+  `
+})
 
 
+//  ---html---
+
+<div id="emit-example-simple">
+  <welcome-button v-on:welcome="sayHi"></welcome-button>
+</div>
 
 
+// ---js---
+
+...
+methods: {
+  sayHi: function () {
+    alert('Hi!')
+  }
+}
+```
+
+虽然不能直接反馈给父组件数据，但可以通过事件的形式传递信息。
+
+### 访问子组件
+
+Props 虽然能够解决我们的问题，但总感觉有点别扭：为什么我要持有 `welcomeName` 和 `username` 两个状态？这两货不应该是同一个东西吗？
+
+幸好，还有一种更简单的方法来处理此问题： 用 `ref` 访问子组件。
+
+**先把刚才写的代码都还原。**
+
+先在 `BlogHeader.vue` 中写一个刷新数据的方法：
+
+```vue
+<!-- frontend/src/components/BlogHeader.vue -->
+...
+<script>
+    ...
+    export default {
+        ...
+        methods: {
+            ...
+            refresh() {
+                this.username = localStorage.getItem('username.myblog');
+            }
+        }
+    }
+</script>
+...
+```
+
+然后在 `UserCenter.vue` 更新用户数据时访问此函数：
+
+```vue
+<!-- frontend/src/views/UserCenter.vue -->
+
+<template>
+    <BlogHeader ref="header"/>
+    ...
+</template>
+
+<script>
+    ...
+    export default {
+        ...
+        methods: {
+            changeInfo() {
+                ...
+                authorization()
+                    .then(...) {
+                        ...
+                        axios
+                            .patch(...)
+                            .then(function (response) {
+                                ...
+                                that.$refs.header.refresh();
+                            })
+                    });
+            }
+        },
+    }
+</script>
+...
+```
+
+是不是比 Props 的方式要更加适合一些呢。
+
+关于组件通信的介绍就告一段落了。接下来处理用户删除的功能。
+
+### 用户删除
+
+删除用户按钮通常会放在用户中心页面，并且为了避免用户误操作，点击后还要进行第二次确认，方可删除。
+
+修改 `UserCenter.vue` 文件：
+
+```vue
+<!-- frontend/src/views/UserCenter.vue -->
+
+<template>
+    ...
+    <div ...>
+        ...
+        <form>
+            ...
+            
+            <div class="form-elem">
+                <button 
+                    v-on:click.prevent="showingDeleteAlert = true" 
+                    class="delete-btn"
+                >删除用户</button>
+                <div :class="{ shake: showingDeleteAlert }">
+                    <button
+                            v-if="showingDeleteAlert"
+                            class="confirm-btn"
+                            @click.prevent="confirmDelete"
+                    >确定？
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+    ...
+</template>
+
+<script>
+    ...
+    export default {
+        ...
+        data: function () {
+            return {
+                ...
+                showingDeleteAlert: false,
+            }
+        },
+        mounted() {...},
+        methods: {
+            confirmDelete() {
+                const that = this;
+                authorization()
+                    .then(function (response) {
+                        if (response[0]) {
+                            // 获取令牌
+                            that.token = storage.getItem('access.myblog');
+                            axios
+                                .delete('/api/user/' + that.username + '/', {
+                                    headers: {Authorization: 'Bearer ' + that.token}
+                                })
+                                .then(function () {
+                                    storage.clear();
+                                    that.$router.push({name: 'Home'});
+                                })
+                        }
+                    })
+            },
+            changeInfo() {...}
+        },
+    }
+</script>
+
+<style scoped>
+    ...
+
+    .confirm-btn {
+        width: 80px;
+        background-color: darkorange;
+    }
+    .delete-btn {
+        background-color: darkred;
+        margin-bottom: 10px;
+    }
+    .shake {
+        animation: shake 0.82s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+        transform: translate3d(0, 0, 0);
+        backface-visibility: hidden;
+        perspective: 1000px;
+    }
+    @keyframes shake {
+        10%,
+        90% {
+            transform: translate3d(-1px, 0, 0);
+        }
+        20%,
+        80% {
+            transform: translate3d(2px, 0, 0);
+        }
+        30%,
+        50%,
+        70% {
+            transform: translate3d(-4px, 0, 0);
+        }
+        40%,
+        60% {
+            transform: translate3d(4px, 0, 0);
+        }
+    }
+</style>
+```
+
+删除本身没什么好说的，与用户更新的实现方式大同小异。需要注意的倒是另外的小知识点：
+
+- 确认删除按钮的出现是带有**动画**的（横向抖动）。上面代码的一半内容都是样式，定义了按钮的外观、动画和关键帧。Vue 2 和 Vue 3 的过渡动画有较大差别，详见 [Vue 2 动画](https://cn.vuejs.org/v2/guide/transitions.html) 和 [Vue 3 动画](https://v3.vuejs.org/guide/transitions-overview.html)。
+- 符号 `@` 是 `v-on:` 的缩写。
+
+### 补充
+
+未登录用户通过输入 url 的方式还是可以到达其他用户的用户中心页面（虽然不能进行危险操作），下面来优化使用户中心页面仅本人可查看
+
+首先在`index.js`中给`UserCenter`的路由添加一个`meta`成员：
+
+```js
+{
+    path: "/user/:username",
+    name: "UserCenter",
+    component: UserCenter,
+    meta: { requireAuth: true }
+ }
+```
+
+然后在main.js中做一个路由守卫，对每个requireAuth值为true的路由进行权限判断，具体如下：
+
+```js
+router.beforeEach((to, from, next) => {
+  console.log(to.path)
+  console.log(from.path)
+  if (to.meta.requireAuth) {
+    console.log(to.params.username)
+    console.log(localStorage.getItem('username.myblog'))
+    if (localStorage.getItem('access.myblog') && to.params.username === localStorage.getItem('username.myblog')) {
+      next();
+    } else if (to.params.username !== localStorage.getItem('username.myblog')) {
+      alert('请不要尝试使用url访问其他用户资料！')
+      next({
+        path: from.path
+      })
+    }
+    else {
+      if (to.path === '/login') {
+        next();
+      }
+      else {
+        alert('请先登录！')
+        next({
+          path: '/login'
+        })
+      }
+    }
+  } else {
+    next();
+  }
+})
+```
+
+## 29.发表文章
+
+把用户管理做的七七八八后，就可以继续愉快的开发博客文章有关的功能了，这才是博客的核心啊。
+
+本章完成博客文章的**发表**。
+
+### 准备工作
+
+一般来说，博客是**只允许博主**自己发表文章的，因此之前设计的接口就有点缺陷了，它没有返回用户的权限信息。不过没关系，改起来也容易。
+
+修改后端文件 `user_info/serializers.py` ，增加返回**当前用户**是否为**超级用户**的信息：
+
+```python
+# user_info/serializers.py
+
+...
+class UserRegisterSerializer(serializers.ModelSerializer):
+    ...
+    class Meta:
+        ...
+        fields = [
+            ...
+            'is_superuser'
+        ]
+        extra_kwargs = {
+            ...
+            'is_superuser': {'read_only': True}
+        }
+```
+
+由于博客文章的分类、标签通常不会太多，因此对这两个接口，为了方便起见我并**不想翻页**而是希望一次请求直接返回所有的数据。
+
+所以修改后端文件 `article/views.py` ：
+
+```python
+# article/views.py
+...
+class TagViewSet(viewsets.ModelViewSet):
+    ...
+    pagination_class = None
 
 
+class CategoryViewSet(viewsets.ModelViewSet):
+    ...
+    pagination_class = None
 
+...
+```
 
+这样就可以了，并且不影响其他接口。
 
+**回到前端编写。**
 
+发表文章需要一个新的页面，因此新建 `frontend/src/views/ArticleCreate.vue` ：
 
+```vue
+<!-- frontend/src/views/ArticleCreate.vue -->
 
+<template>
+  <BlogHeader/>
 
+  <BlogFooter/>
+</template>
 
+<script>
+  import BlogHeader from '@/components/BlogHeader.vue'
+  import BlogFooter from '@/components/BlogFooter.vue'
 
+  export default {
+    name: 'ArticleCreate',
+    components: {BlogHeader, BlogFooter}
+  }
+</script>
+```
 
+暂时有个**空壳子**就行了，后面再来填补内容。
 
+接着，在用户登录时追加记录用户**是否为超级管理员**：
 
+```vue
+<!-- frontend/src/views/Login.vue -->
 
+...
+<script>
+  ...
+  methods: {
+    ...
+    signin() {
+      ...
+      axios
+        .post(...)
+              .then(function (response) {
+        ...
+        // 是否为管理员
+        axios
+          .get('/api/user/' + that.signinName + '/')
+          .then(function (response) {
+          storage.setItem('isSuperuser.myblog', response.data.is_superuser);
+          // 路由跳转修改到这里
+          that.$router.push({name: 'Home'});
+        });
+        // .catch(...)
+      })
+    },
+  }
+</script>
+....
+```
 
+将新页面的路由注册好：
 
+```js
+// frontend/src/router/index.js
 
+...
+import ArticleCreate from "@/views/ArticleCreate.vue";
 
+const routes = [
+  ...
+  {
+    path: "/article/create",
+    name: "ArticleCreate",
+    component: ArticleCreate
+  },
+];
+```
 
+最后，在页眉的欢迎词下拉框用 `v-if` 仅对**超级用户**显示入口，普通用户不显示：
 
+```vue
+<!-- frontend/src/components/BlogHeader.vue -->
 
+<template>
+  ...
+  <div class="dropdown-content">
+    ...
+    <router-link 
+                 :to="{ name: 'ArticleCreate' }" 
+                 v-if="isSuperuser"
+                 >
+      发表文章
+    </router-link>
+  </div>
+  ...
+</template>
 
+<script>
+  ...
+  data: function () {
+    return {
+      ...
+      isSuperuser: JSON.parse(localStorage.getItem('isSuperuser.myblog')),
+    }
+  },
+    ...
+</script>
+```
 
+准备工作就完成了。现在把鼠标悬停在**页眉欢迎词**上，如果是超级用户，下拉框中会出现“发表文章”的链接。点击链接，就能前往发表文章页面了
 
+### 发表页面
 
+最后就是 `ArticleCreate.vue` 的实际内容了。
 
+代码量比较大，这里贴出完整内容：
 
+```vue
+<!-- frontend/src/views/ArticleCreate.vue -->
 
+<template>
+  <BlogHeader/>
+  <div id="article-create">
+    <h3>发表文章</h3>
+    <form>
+      <div class="form-elem">
+        <span>标题：</span>
+        <input v-model="title" type="text" placeholder="输入标题">
+      </div>
 
+      <div class="form-elem">
+        <span>分类：</span>
+        <span
+              v-for="category in categories"
+              :key="category.id"
+              >
+          <!--样式也可以通过 :style 绑定-->
+          <button
+                  class="category-btn"
+                  :style="categoryStyle(category)"
+                  @click.prevent="chooseCategory(category)"
+                  >
+            {{category.title}}
+          </button>
+        </span>
+      </div>
 
+      <div class="form-elem">
+        <span>标签：</span>
+        <input v-model="tags" type="text" placeholder="输入标签，用逗号分隔">
+      </div>
 
+      <div class="form-elem">
+        <span>正文：</span>
+        <textarea v-model="body" placeholder="输入正文" rows="20" cols="80"></textarea>
+      </div>
 
+      <div class="form-elem">
+        <button v-on:click.prevent="submit">提交</button>
+      </div>
+    </form>
+  </div>
+  <BlogFooter/>
+</template>
 
+<script>
+  import BlogHeader from '@/components/BlogHeader.vue'
+  import BlogFooter from '@/components/BlogFooter.vue'
+  import axios from 'axios';
+  import authorization from '@/utils/authorization';
 
+  export default {
+    name: 'ArticleCreate',
+    components: {BlogHeader, BlogFooter},
+    data: function () {
+      return {
+        // 文章标题
+        title: '',
+        // 文章正文
+        body: '',
+        // 数据库中所有的分类
+        categories: [],
+        // 选定的分类
+        selectedCategory: null,
+        // 标签
+        tags: '',
+      }
+    },
+    mounted() {
+      // 页面初始化时获取所有分类
+      axios
+        .get('/api/category/')
+        .then(response => this.categories = response.data)
+    },
+    methods: {
+      // 根据分类是否被选中，按钮的颜色发生变化
+      // 这里可以看出 css 也是可以被 vue 绑定的，很方便
+      categoryStyle(category) {
+        if (this.selectedCategory !== null && category.id === this.selectedCategory.id) {
+          return {
+            backgroundColor: 'black',
+          }
+        }
+        return {
+          backgroundColor: 'lightgrey',
+          color: 'black',
+        }
+      },
+      // 选取分类的方法
+      chooseCategory(category) {
+        // 如果点击已选取的分类，则将 selectedCategory 置空
+        if (this.selectedCategory !== null && this.selectedCategory.id === category.id) {
+          this.selectedCategory = null
+        }
+        // 如果没选中当前分类，则选中它
+        else {
+          this.selectedCategory = category;
+        }
+      },
+      // 点击提交按钮
+      submit() {
+        const that = this;
+        // 前面封装的验证函数又用上了
+        authorization()
+          .then(function (response) {
+            if (response[0]) {
+              // 需要传给后端的数据字典
+              let data = {
+                title: that.title,
+                body: that.body,
+              };
+              // 添加分类
+              if (that.selectedCategory) {
+                data.category_id = that.selectedCategory.id
+              }
+              // 标签预处理
+              data.tags = that.tags
+                // 用逗号分隔标签
+                .split(/[,，]/)
+                // 剔除标签首尾空格
+                .map(x => x.trim())
+                // 剔除长度为零的无效标签
+                .filter(x => x.charAt(0) !== '');
 
+              // 将发表文章请求发送至接口
+              // 成功后前往详情页面
+              const token = localStorage.getItem('access.myblog');
+              axios
+                .post('/api/article/',
+                  data,
+                  {
+                		headers: {Authorization: 'Bearer ' + token}
+              		})
+                .then(function (response) {
+                	that.$router.push({name: 'ArticleDetail', params: {id: response.data.id}});
+              })
+            }
+            else {
+              alert('令牌过期，请重新登录。')
+            }
+          }
+        )
+      }
+    }
+  }
+</script>
 
+<style scoped>
+  .category-btn {
+    margin-right: 10px;
+  }
+  #article-create {
+    text-align: center;
+    font-size: large;
+  }
+  form {
+    text-align: left;
+    padding-left: 100px;
+    padding-right: 10px;
+  }
+  .form-elem {
+    padding: 10px;
+  }
+  input {
+    height: 25px;
+    padding-left: 10px;
+    width: 50%;
+  }
+  button {
+    height: 35px;
+    cursor: pointer;
+    border: none;
+    outline: none;
+    background: steelblue;
+    color: whitesmoke;
+    border-radius: 5px;
+    width: 60px;
+  }
+</style>
+```
+
+细节就由读者自己去慢慢啃了，把**新出现的知识点和主要逻辑**理出来讲讲：
+
+- 基本思路和用户注册、登录等实现很像，**核心就是围绕 Vue 的 data**；把需要的数据全部绑定到 data 中，点击提交按钮就将这些数据处理得妥妥当当，发送到接口。
+- `v-bind` 很强大，它甚至可以把**样式也绑定成为数据**。比如这里为了让分类按钮**被选中后**具有不同的外观，就把所有分类按钮的**样式**绑定到 `categoryStyle()` 方法上。样式绑定看起来很像 CSS，但实际上它是个 Javascript 对象。（注意这里也是驼峰式命名）
+- 提交按钮的 `submit()` 篇幅很长，但是仔细看看也很简单：**把 data 里的数据进行预处理，转换为接口所需要的数据类型并发送请求。**
+
+> 还记得吗，我们的后端对标签的处理非常优秀：可以在创建文章的接口里添加标签的列表，并且很好的处理了列表中已有标签和未有标签的混合。
+
+新内容就这么多。
+
+为了让列表页面也能显示**分类**信息，稍微改一改 `ArticleList.vue` :
+
+```vue
+<!-- frontend/src/components/ArticleList.vue -->
+
+<template>
+  <div v-for="article in info.results" ...>
+    <div>
+      <!-- 增加了这个 span -->
+      <span
+            v-if="article.category !== null"
+            class="category"
+            >
+        {{article.category.title}}
+      </span>
+      <span v-for="tag in article.tags" ...>{{ tag }}</span>
+    </div>
+    ...
+  </div>
+
+  ...
+
+</template>
+
+...
+
+<style scoped>
+  .category {
+    padding: 5px 10px 5px 10px;
+    margin: 5px 5px 5px 0;
+    font-family: Georgia, Arial, sans-serif;
+    font-size: small;
+    background-color: darkred;
+    color: whitesmoke;
+    border-radius: 15px;
+  }
+
+  ...
+</style>
+```
+
+添加了分类信息显示。
+
+核心功能都较完整的实现了，可歌可泣。至于外观，读者慢慢摸索着优化吧。
+
+## 30.文章更新与删除
+
+本章来完成**文章更新和删除**功能。
+
+来看看具体怎么做吧。
+
+### 更新与删除
+
+**文章更新**实际上和**文章发表**非常类似，有了前面的基础就比较简单了，因此这里把代码一口气全贴出来。
+
+新建 `frontend/src/views/ArticleEdit.vue` 文件，写入：
+
+```vue
+<!-- frontend/src/views/ArticleEdit.vue -->
+
+<template>
+  <BlogHeader/>
+  <div id="article-create">
+    <h3>更新文章</h3>
+    <form>
+      <div class="form-elem">
+        <span>标题：</span>
+        <input v-model="title" type="text" placeholder="输入标题">
+      </div>
+
+      <div class="form-elem">
+        <span>分类：</span>
+        <span
+              v-for="category in categories"
+              :key="category.id"
+              >
+          <!--样式也可以通过 :style 绑定-->
+          <button
+                  class="category-btn"
+                  :style="categoryStyle(category)"
+                  @click.prevent="chooseCategory(category)"
+                  >
+            {{category.title}}
+          </button>
+        </span>
+      </div>
+
+      <div class="form-elem">
+        <span>标签：</span>
+        <input v-model="tags" type="text" placeholder="输入标签，用逗号分隔">
+      </div>
+
+      <div class="form-elem">
+        <span>正文：</span>
+        <textarea v-model="body" placeholder="输入正文" rows="20" cols="80"></textarea>
+      </div>
+
+      <div class="form-elem">
+        <button v-on:click.prevent="submit">提交</button>
+      </div>
+      <div class="form-elem">
+        <button v-on:click.prevent="deleteArticle" style="background-color: darkred">删除</button>
+      </div>
+    </form>
+
+  </div>
+  <BlogFooter/>
+</template>
+
+<script>
+  import BlogHeader from '@/components/BlogHeader.vue'
+  import BlogFooter from '@/components/BlogFooter.vue'
+  import axios from 'axios';
+  import authorization from '@/utils/authorization';
+
+  export default {
+    name: 'ArticleEdit',
+    components: {BlogHeader, BlogFooter},
+    data: function () {
+      return {
+        title: '',
+        body: '',
+
+        // 所有分类
+        categories: [],
+        // 选定的分类
+        selectedCategory: null,
+        // 标签
+        tags: '',
+
+        // Article id
+        articleID: null,
+      }
+    },
+    mounted() {
+      // 页面初始化时获取所有分类
+      axios
+        .get('/api/category/')
+        .then(response => this.categories = response.data);
+
+      // 与前面章节说的一样
+      // 如果你不希望非管理员用户也能获取原始 Markdown 数据
+      // 那么必须在后端进行鉴权
+      // 根据用户身份选用不同的序列化器
+      const that = this;
+      axios
+        .get('/api/article/' + that.$route.params.id + '/')
+        .then(function (response) {
+          const data = response.data;
+          that.title = data.title;
+          that.body = data.body;
+          that.selectedCategory = data.category;
+          that.tags = data.tags.join(',');
+          that.articleID = data.id;
+      	})
+    },
+    methods: {
+      // 根据分类是否被选中，按钮的颜色发生变化
+      categoryStyle(category) {
+        if (this.selectedCategory !== null && category.id === this.selectedCategory.id) {
+          return {
+            backgroundColor: 'black',
+          }
+        }
+        return {
+          backgroundColor: 'lightgrey',
+          color: 'black',
+        }
+      },
+      // 选取分类
+      chooseCategory(category) {
+        // 如果点击已选取的分类，则将 selectedCategory 置空
+        if (this.selectedCategory !== null && this.selectedCategory.id === category.id) {
+          this.selectedCategory = null
+        }
+        else {
+          this.selectedCategory = category;
+        }
+      },
+      // 点击提交按钮
+      // 大部分代码与发表文章相同
+      // 有少量改动
+      submit() {
+        const that = this;
+        authorization()
+          .then(function (response) {
+            if (response[0]) {
+              let data = {
+                title: that.title,
+                body: that.body,
+              };
+
+              data.category_id = that.selectedCategory ? that.selectedCategory.id : null;
+
+              data.tags = that.tags
+                .split(/[,，]/)
+                .map(x => x.trim())
+                .filter(x => x.charAt(0) !== '');
+
+              const token = localStorage.getItem('access.myblog');
+              axios
+                .put('/api/article/' + that.articleID + '/',
+                     data,
+                     {
+                headers: {Authorization: 'Bearer ' + token}
+              })
+                .then(function (response) {
+                that.$router.push({name: 'ArticleDetail', params: {id: response.data.id}});
+              })
+            }
+            else {
+              alert('令牌过期，请重新登录。')
+            }
+          }
+        )
+      },
+      deleteArticle() {
+        const that = this;
+        const token = localStorage.getItem('access.myblog');
+        authorization()
+          .then(function (response) {
+            if (response[0]) {
+              axios
+                .delete('/api/article/' + that.articleID + '/',
+                  {
+                		headers: {Authorization: 'Bearer ' + token}
+              		})
+                .then(() => that.$router.push({name: 'Home'}))
+            }
+            else {
+              alert('令牌过期，请重新登录。')
+            }
+          }
+        )
+      }
+    }
+  }
+</script>
+
+<style scoped>
+  .category-btn {
+    margin-right: 10px;
+  }
+  #article-create {
+    text-align: center;
+    font-size: large;
+  }
+  form {
+    text-align: left;
+    padding-left: 100px;
+    padding-right: 10px;
+  }
+  .form-elem {
+    padding: 10px;
+  }
+  input {
+    height: 25px;
+    padding-left: 10px;
+    width: 50%;
+  }
+  button {
+    height: 35px;
+    cursor: pointer;
+    border: none;
+    outline: none;
+    background: steelblue;
+    color: whitesmoke;
+    border-radius: 5px;
+    width: 60px;
+  }
+</style>
+```
+
+代码仔细一看，和发表文章几乎大部分内容都是一样的，但还是有**以下区别**：
+
+- Vue 管理的数据中多了 `articleID` ，用于获取需要更新的文章的索引，以便更新或删除时使用。
+- 页面在初始化 `mounted` 时，将已有的文章旧数据（比如标题、标签、正文等）填入表单控件。
+- 提交按钮将数据 `PUT` 到原文章进行更新（注意此处分类的赋值代码有些许改动）。
+- 新增了删除的方法。
+
+这里建议读者**逐行**对比和发表文章的代码，想想为什么代码之间会有些小区别。
+
+> 代码相似就说明有优化和合并的可能。教程就不作赘述了，留给读者以后自行优化。
+>
+> 提示：利用 Props 确定是发表还是更新。
+
+另一个问题是，文章更新页面**未作鉴权**。虽然无权限用户不能做更改资源的操作，但还是可以拿到原始 Markdown 正文的。如果你很在意这个，那就对相关接口做一次鉴权，根据权限来返回不同的数据（或者给原始正文单独一个带权限的接口）。
+
+### 入口及其他
+
+剩下的工作就比较简单了。
+
+首先老规矩，注册路由：
+
+```js
+// frontend/src/router/index.js
+
+...
+import ArticleEdit from "@/views/ArticleEdit.vue";
+
+const routes = [
+  ...
+  {
+    path: "/article/edit/:id",
+    name: "ArticleEdit",
+    component: ArticleEdit
+  },
+];
+...
+```
+
+接着在文章详情页中放一个更新和删除页面的入口：
+
+```vue
+<!-- frontend/src/views/ArticleDetail.vue -->
+
+<template>
+  ...
+  <p id="subtitle">
+    ...
+    <span v-if="isSuperuser">
+      <router-link 
+        :to="{ name: 'ArticleEdit', params: { id: article.id }}"
+      >
+        更新与删除
+      </router-link>
+    </span>
+  </p>
+  ...
+</template>
+
+<script>
+  ...
+  computed: {
+    isSuperuser() {
+      return localStorage.getItem('isSuperuser.myblog') === 'true'
+    }
+  }
+  ...
+</script>
+```
+
+如果是管理员用户，则显示此入口。（这里也用到了计算属性）
+
+## 31.标题图的提交
+
+文章的**增删改查**都搞定了，唯独剩**标题图**未进行处理（所有文章均无标题图）。莫慌，这章就来完成它。
+
+有的读者一听到图片的提交上传就觉得麻烦，其实不是这样的。由于前面在写图片上传的**后端接口**时就已经把流程考虑完整了，因此标题图得处理就很简单了，甚至比前面的其他接口都要简单。
+
+本章将以**发表文章**功能为例，讲解图片提交的实现。
+
+### 发表文章页面
+
+回顾一下**图片提交**的流程：在 `multipart/form-data` 中发送文件，然后将保存好的文件 id 返回给客户端。客户端拿到文件 id 后，发送带有 id 的 Json 数据，在服务器端将它们关联起来。
+
+结合到 Vue 中就是：
+
+- 在发表新文章页面中选定图片后，不等待文章的提交而是立即将图片上传。
+- 图片上传成功后返回图片 id，前端将 id 保存待用。
+- 提交文章时，将图片 id 一并打包提交即可。
+
+根据这个思路，首先就要在 `ArticleCreate.vue` 中添加代码：
+
+```vue
+<!-- frontend/src/views/ArticleCreate.vue -->
+
+<template>
+  ...
+  <div id="article-create">
+    ...
+    <!-- 添加一个新的 from -->
+    <form id="image_form">
+      <div class="form-elem">
+        <span>图片：</span>
+        <input
+               v-on:change="onFileChange"
+               type="file"
+               id="file"
+               >
+      </div>
+    </form>
+    <!-- 已有代码，提交文章数据的 from -->
+    <form>
+      ...
+    </form>
+  </div>
+  ...
+</template>
+
+<script>
+  ...
+  export default {
+    ...
+    data: function () {
+      return {
+        ...
+        // 标题图 id
+        avatarID: null,
+      }
+    },
+    methods: {
+      onFileChange(e) {
+        // 将文件二进制数据添加到提交数据中
+        const file = e.target.files[0];
+        let formData = new FormData();
+        formData.append("content", file);
+
+        // 略去鉴权和错误处理的部分
+        axios
+          .post('/api/avatar/', formData, {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+            'Authorization': 'Bearer ' + localStorage.getItem('access.myblog')
+          }
+        })
+          .then( response => this.avatarID = response.data.id)
+      },
+      // 点击提交按钮
+      submit() {
+        ...
+        authorization()
+          .then(function (...) {
+            if (...) {
+              let data = {...};
+          
+              // 新增代码
+              // 添加标题图 id
+              data.avatar_id = that.avatarID;
+
+              ...
+              }
+            ...
+          }
+        )
+      },
+      ...
+    }
+  }
+</script>
+```
+
+- 新增了一个**表单**（不用表单其实也没关系），表单含有一个提交文件的控件；`v-on:change` 将控件绑定到 `onFileChange()` 方法，即只要用户选定了任何图片，都会触发此方法。
+- `onFileChange(e)` 中的参数为控件所触发的事件对象。由于图片二进制流不能以简单的字符串数据进行表示，所以将其添加到 `FormData` 表单对象中，发送到图片上传接口。若接口返回成功，则将返回的 id 值保存待用。
+- `submit()` 对应增加了图片 id 的赋值语句。
+
+图片的上传、与文章的绑定就完成了。
+
+> 你可以在发表页面自行选择图片尝试，打开控制台 network 面板，看看是否正确上传并且无任何报错。
+
+### 显示标题图
+
+标题图是能正确**提交**了，但现在还不能在文章列表页面**显示**它，因此需要修改 `ArticleList.vue` 代码。
+
+一种比较美观的标题图显示方式为图片在左、文字在右。这就需要修改列表的**网格结构**，因此这里把对应的模板全部贴出来：
+
+```vue
+<!-- frontend/src/componenets/ArticleList.vue -->
+
+<template>
+  <div v-for="article in info.results" ...>
+    <!-- 新增一个网格层 -->
+    <div class="grid" :style="gridStyle(article)">
+      <div class="image-container">
+        <img :src="imageIfExists(article)" alt="" class="image">
+      </div>
+
+      <!-- 下面是已有代码 -->
+      <div>
+        <div>
+          <span
+                v-if="article.category !== null"
+                class="category"
+                >
+            {{article.category.title}}
+          </span>
+          <span v-for="tag in article.tags" v-bind:key="tag" class="tag">{{ tag }}</span>
+        </div>
+        <div class="a-title-container">
+          <router-link
+            :to="{ name: 'ArticleDetail', params: { id: article.id }}"
+            class="article-title"
+          >
+            {{ article.title }}
+          </router-link>
+        </div>
+        <div>{{ formatted_time(article.created) }}</div>
+      </div>
+    </div>
+  </div>
+
+  ...
+
+</template>
+
+<script>
+  ...
+  export default {
+    ...
+    methods: {
+      imageIfExists(article) {
+        if (article.avatar) {
+          return article.avatar.content
+        }
+      },
+      gridStyle(article) {
+        if (article.avatar) {
+          return {
+            display: 'grid',
+            gridTemplateColumns: '1fr 4fr'
+          }
+        }
+      },
+      ...
+    },
+    ...
+  }
+</script>
+
+<style scoped>
+  .image {
+    width: 180px;
+    border-radius: 10px;
+    box-shadow: darkslategrey 0 0 12px;
+  }
+  .image-container {
+    width: 200px;
+  }
+  .grid {
+    padding-bottom: 10px;
+  }
+
+  ...
+</style>
+```
+
+模板虽然新增代码不多，但是要注意：
+
+- 网格层用 `:style` 将样式绑定到 `gridStyle()` 方法，这主要是为了将**有无**标题图的文章渲染形式区分开。
+- `img` 元素将 `:src` 绑定到 `imageIfExists()` 方法，若文章有标题图则显示，无标题图则不显示。
+- 为了美观，在样式中限制图片的大小，使宽度一致。
+
+## 32.发布评论
+
+经过几个章节的折腾，文章的增删改查也完成得差不多了，这章紧接着开发最后一个大的模块：**评论**。
+
+### 入口与Props
+
+作为一个普通的博客，评论通常位于**文章详情的末尾**，以便读者发表对博主的赞赏之情。又因为评论模块和文章模块本身没太多交联，比较独立，因此可以不让它们的代码搅在一起。
+
+因此修改 `ArticleDetail.vue` ，新增一个 `Comments` **组件**：（注意此组件还没写）
+
+```vue
+<!-- frontend/src/views/ArticleDetail.vue -->
+
+<template>
+
+  ...
+
+  <Comments :article="article" />
+
+  <BlogFooter/>
+
+</template>
+
+<script>
+  ...
+  import Comments from '@/components/Comments.vue'
+
+  export default {
+    ...
+    components: {BlogHeader, BlogFooter, Comments},
+    ...
+  }
+</script>
+...
+```
+
+Props 可以是数字、字符串等原生类型，也可以是如 `article` 这类自定义**对象**。传递文章对象是为了让评论组件获取到相关联文章的所有评论。
+
+### 评论组件
+
+接下来正式写评论组件。
+
+新建 `frontend/src/components/Comments.vue` ，写入代码：
+
+```vue
+<!-- frontend/src/components/Comments.vue -->
+
+<template>
+  <br><br>
+  <hr>
+  <h3>发表评论</h3>
+  <!-- 评论多行文本输入控件 -->
+  <textarea
+            v-model="message"
+            :placeholder="placeholder"
+            name="comment"
+            id="comment-area"
+            cols="60"
+            rows="10"
+            ></textarea>
+  <div>
+    <button @click="submit" class="submitBtn">发布</button>
+  </div>
+
+  <br>
+  <p>已有 {{ comments.length }} 条评论</p>
+  <hr>
+
+  <!-- 渲染所有评论内容 -->
+  <div
+       v-for="comment in comments"
+       :key="comment.id"
+       >
+    <div class="comments">
+      <div>
+        <span class="username">
+          {{ comment.author.username }}
+        </span>
+        于
+        <span class="created">
+          {{ formatted_time(comment.created) }}
+        </span>
+        <span v-if="comment.parent">
+          对
+          <span class="parent">
+            {{ comment.parent.author.username }}
+          </span>
+        </span>
+        说道：
+      </div>
+      <div class="content">
+        {{ comment.content }}
+      </div>
+      <div>
+        <button class="commentBtn" @click="replyTo(comment)">回复</button>
+      </div>
+    </div>
+    <hr>
+  </div>
+</template>
+
+<script>
+  import axios from 'axios';
+  import authorization from '@/utils/authorization';
+
+  export default {
+    name: 'Comments',
+    // 通过 props 获取当前文章
+    props: { article: Object },
+    data: function () {
+      return {
+        // 所有评论
+        comments: [],
+        // 评论控件绑定的文本和占位符
+        message: '',
+        placeholder: '说点啥吧...',
+        // 评论的评论
+        parentID: null
+      }
+    },
+    // 监听 article 对象
+    // 以便实时更新评论
+    watch: {
+      article() {
+        this.comments = this.article !== null ? this.article.comments : []
+      }
+    },
+    methods: {
+      // 提交评论
+      submit() {
+        const that = this;
+        authorization()
+          .then(function (response) {
+            if (response[0]) {
+              axios
+                .post('/api/comment/',
+                  {
+                    content: that.message,
+                    article_id: that.article.id,
+                    parent_id: that.parentID,
+                  },
+                  {
+                    headers: {Authorization: 'Bearer ' + localStorage.getItem('access.myblog')}
+                  })
+                .then(function (response) {
+                  // 将新评论添加到顶部
+                  that.comments.unshift(response.data);
+                  that.message = '';
+                  alert('留言成功')
+                })
+            }
+            else {
+              alert('请登录后评论。')
+            }
+        })
+      },
+      // 对某条评论进行评论
+      // 即二级评论
+      replyTo(comment) {
+        this.parentID = comment.id;
+        this.placeholder = '对' + comment.author.username + '说:'
+      },
+      // 修改日期显示格式
+      formatted_time: function (iso_date_string) {
+        const date = new Date(iso_date_string);
+        return date.toLocaleDateString() + '  ' + date.toLocaleTimeString()
+      },
+    }
+  }
+</script>
+
+<style scoped>
+  button {
+    cursor: pointer;
+    border: none;
+    outline: none;
+    color: whitesmoke;
+    border-radius: 5px;
+  }
+  .submitBtn {
+    height: 35px;
+    background: steelblue;
+    width: 60px;
+  }
+  .commentBtn {
+    height: 25px;
+    background: lightslategray;
+    width: 40px;
+  }
+  .comments {
+    padding-top: 10px;
+  }
+  .username {
+    font-weight: bold;
+    color: darkorange;
+  }
+  .created {
+    font-weight: bold;
+    color: darkblue;
+  }
+  .parent {
+    font-weight: bold;
+    color: orangered;
+  }
+  .content {
+    font-size: large;
+    padding: 15px;
+  }
+</style>
+```
+
+实际上没有啥新知识，都是前面章节技巧的混合：
+
+- 组件通过 `Props` 获取了**文章对象**，利用 `watch` 监听此对象并实时更新关联评论。注意这里**不能**通过 `mounted()` 去实现此逻辑，原因是因为挂载 Vue 实例的时候 `article` 的**初始值**是 `null`。
+- 提交评论用 `submit()` 方法，后端若返回成功则将最新的评论**更新**到 `this.comments` 中。
+- `replyTo()` 方法用于记录评论的父级（即“评论的评论”），如果为 `null` 则表示此评论自己就是第一级。
+- `formatted_time()` 方法见过好几回了，用于格式化日期。
 
 
 

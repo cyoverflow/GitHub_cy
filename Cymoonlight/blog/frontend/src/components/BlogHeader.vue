@@ -1,20 +1,133 @@
 <template>
   <div id="header">
-    <h1>Welcome to Cy's world.</h1>
+    <div class="grid">
+      <div></div>
+      <h1>Welcome to Cy's world.</h1>
+      <!-- 引入搜索组件 -->
+      <SearchButton/>
+    </div>
+
     <hr>
+
+    <div class="login">
+      <div v-if="hasLogin">
+        <div class="dropdown">
+          <button class="dropbtn">欢迎, {{ username }}!</button>
+          <div class="dropdown-content">
+            <router-link :to="{ name: 'UserCenter', params: {username: username }}">用户中心</router-link>
+            <router-link 
+                        :to="{ name: 'ArticleCreate' }"
+                        v-if="isSuperuser"
+                        >
+                        发表文章
+                        </router-link>
+            <router-link :to="{ name: 'Home' }" v-on:click.prevent="logout()">退出登录</router-link>
+          </div>
+        </div>
+      </div>
+      <div v-else>
+        <router-link to="/login" class="login-link">登录</router-link>
+      </div>
+    </div>
   </div>
 </template>
 
 <script>
-    export default{
-        name: 'BlogHeader'
+    import SearchButton from '@/components/SearchButton.vue';
+    import authorization from '@/utils/authorization';
+
+    export default {
+      name: 'BlogHeader',
+      components: {SearchButton},
+      data: function () {
+        return {
+          username: '',
+          hasLogin: false,
+          isSuperuser: JSON.parse(localStorage.getItem('isSuperuser.myblog')),
+        }
+      },
+      methods: {
+        //退出登录
+        logout: function () {
+        this.hasLogin = true;
+        localStorage.clear();
+        if (this.$route.name == "Home") { 
+          // 如果当前页面是首页，才要刷新，否则不用刷新，因为router-link已经跳转到首页去了，如果再刷新则又回到了前一级页面
+          window.location.reload(false)
+      }
+    },
+        refresh() {
+          this.username = localStorage.getItem('username.myblog');
+        }
+      },
+      mounted() {
+        authorization().then((data) => [this.hasLogin, this.username] = data);
+      }
     }
 </script>
 
-<!-- "scoped" 使样式仅在当前组件生效 -->
 <style scoped>
-  #header {
-    text-align: center;
-    margin-top: 20px;
-  }
+    /*样式来源: https://www.runoob.com/css/css-dropdowns.html*/
+    /* 下拉按钮样式 */
+    .dropbtn {
+        background-color: #7B90D2;
+        color: white;
+        padding: 8px 8px 30px 8px;
+        font-size: 16px;
+        border: none;
+        cursor: pointer;
+        height: 16px;
+        border-radius: 5px;
+    }
+    /* 容器 <div> - 需要定位下拉内容 */
+    .dropdown {
+        position: relative;
+        display: inline-block;
+    }
+    /* 下拉内容 (默认隐藏) */
+    .dropdown-content {
+        display: none;
+        position: absolute;
+        background-color: #f9f9f9;
+        min-width: 200px;
+        box-shadow: 0 8px 16px 0 rgba(0, 0, 0, 0.2);
+        text-align: center;
+    }
+    /* 下拉菜单的链接 */
+    .dropdown-content a {
+        color: black;
+        padding: 12px 16px;
+        text-decoration: none;
+        display: block;
+    }
+    /* 鼠标移上去后修改下拉菜单链接颜色 */
+    .dropdown-content a:hover {
+        background-color: #f1f1f1
+    }
+    /* 在鼠标移上去后显示下拉菜单 */
+    .dropdown:hover .dropdown-content {
+        display: block;
+    }
+    /* 当下拉内容显示后修改下拉按钮的背景颜色 */
+    .dropdown:hover .dropbtn {
+        background-color: darkslateblue;
+    }
+</style>
+
+<style scoped>
+    .login-link {
+        color: black;
+    }
+    .login {
+        text-align: right;
+        padding-right: 5px;
+    }
+    #header {
+        text-align: center;
+        margin-top: 20px;
+    }
+    .grid {
+        display: grid;
+        grid-template-columns: 1fr 4fr 1fr;
+    }
 </style>

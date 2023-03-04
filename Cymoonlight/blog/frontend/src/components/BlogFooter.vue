@@ -1,6 +1,6 @@
 <template>
     <!-- br 标签给页脚留出位置 -->
-    <br><br>
+    <br><br><br>
     <div id="footer">
         <p>cymoonlight.xyz</p>
     </div>
@@ -18,9 +18,10 @@
 <!-- "scoped" 使样式仅在当前组件生效 -->
 <style scoped>
   #footer {
+    font-size: large;
     position: fixed;
     left: 0;
-    bottom: 0;
+    bottom: 9px;
     height: 60px;
     width: 100%;
     background: whitesmoke;
@@ -28,6 +29,7 @@
     font-weight: bold;
   }
   #beian {
+    font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     font-size: small;
     position: fixed;
     left: 0;
@@ -37,5 +39,10 @@
     background: whitesmoke;
     text-align: center;
     font-weight: lighter;
+  }
+
+  a {
+    color: rgb(0, 0, 0);
+    text-decoration: none;
   }
 </style>
