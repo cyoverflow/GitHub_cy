@@ -7244,10 +7244,6 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'collected_static')
 
 通常我们会将项目上传到 Github ，再由 Github 将项目代码下载到服务器。因此你还需要把项目上传到 Github。
 
-> 鉴于国内网络环境复杂，Github 经常会速度很慢或无法登录。这时候你也可以尝试用国内的 [Gitee](https://gitee.com/)，或者直接点对点本地上传服务器。
-
-如何上传这里就不细讲了，请自行学习 Git 相关知识，注册 Github 账号等。
-
 需要提醒的是，一定要清楚项目中哪些文件上传，哪些文件不用传：
 
 - 前后端所有用到的**库都不要上传**，比如 venv 目录和 node_modules 目录，这些依赖项可以在服务器中很方便地安装；
